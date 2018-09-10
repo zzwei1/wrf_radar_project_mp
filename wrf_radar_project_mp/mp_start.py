@@ -38,10 +38,10 @@ def create_func_args_tuple(func_name, *args):
 def start_mp(work_base_folder,
              file_list=None,
              masks=None,
-             levels=[15, 20, 25, 30, 35, 40],
+             levels=(15, 20, 25, 30, 35, 40),
              working_mode="wrf",
              stage2_datetime_format="refl_3_5km_%Y_%m_%d_%H_%M",
-             skip_list=[],
+             skip_list=(),
              discard=False):
     arcpy.CheckOutExtension("Spatial")
 
@@ -64,8 +64,7 @@ def start_mp(work_base_folder,
     if file_list is not None:
         base_input = file_list # Since we have sorted timestamp input, we don't have to sort them, otherwise it could be wrong
     else:
-        # base_input = utils.list_folder_sorted_ext(base, ".nc" if working_mode == "wrf" else ".img")
-        base_input = utils.list_folder_sorted_ext(base, ".img")
+        base_input = utils.list_folder_sorted_ext(base, ".nc" if working_mode == "wrf" else ".img")
 
     # Get the full name of input files, contour polygon
     base_input_path = [os.path.join(base, p) for p in filter(None, base_input)]
@@ -145,9 +144,10 @@ def start_mp(work_base_folder,
     dispersiveness = [p(*q) for p, q in func_stub]
     from pprint import pprint as pp
     level_strs = map(str, levels)
-    variable_strs = ["dispersiveness", "closure", "frag", "asymmetry", "elongation2"]
+    # "dispersiveness, closure_str, fragmentation, roundness, displacements_n, displacements_e"
+    variable_strs = ["dispersiveness", "closure", "frag", "asymmetry", "dis_e", "dis_n"]
     header_list = map('-'.join, list(itertools.product(variable_strs, level_strs)))
-    with open(os.path.join(work_base_folder, "dispersiveness.csv"), "w") as dispersive_output:
+    with open(os.path.join(work_base_folder, "dispersiveness_%d.csv" % os.getpid()), "w") as dispersive_output:
         dispersive_output.write("time_string," + ",".join(header_list) + ",comment\n")
         for a, d in zip(asm_input, dispersiveness):
             dispersive_output.write(a + "," + "".join(d) + "\n")

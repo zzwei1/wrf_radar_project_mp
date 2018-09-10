@@ -37,7 +37,7 @@ def relocate(old_path, new_folder, new_ext=None):
         the extension of new file will be replaced by ````new_ext````
     """
     rootname, ext = os.path.splitext(os.path.basename(old_path))
-    rootname = rootname.replace(".", "_")
+    rootname = rootname.replace(".", "_").replace(" ", "_").replace("-","_")
     base = os.path.basename(old_path)
     if new_ext is None:
         return os.path.join(new_folder, rootname + ext)
@@ -88,5 +88,5 @@ stage2_folder = "adv_metric"
 projStr = "+proj=lcc +lat_1=20 +lat_2=60 +lat_0=40 +lon_0=-96 +x_0=0 +y_0=0 +ellps=GRS80 +datum=NAD83 +units=m +no_defs"
 projFunc = pyproj.Proj(projStr)
 spatialRef = '''PROJCS["North_America_Lambert_Conformal_Conic",GEOGCS["GCS_North_American_1983",DATUM["D_North_American_1983",SPHEROID["GRS_1980",6378137.0,298.257222101]],PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433]],PROJECTION["Lambert_Conformal_Conic"],PARAMETER["False_Easting",0.0],PARAMETER["False_Northing",0.0],PARAMETER["Central_Meridian",-96.0],PARAMETER["Standard_Parallel_1",20.0],PARAMETER["Standard_Parallel_2",60.0],PARAMETER["Latitude_Of_Origin",40.0],UNIT["Meter",1.0],AUTHORITY["ESRI",102009]]'''
-resolution = 4000
+resolution = 30000
 

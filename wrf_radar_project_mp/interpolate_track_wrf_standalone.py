@@ -25,6 +25,7 @@ def date_to_timestamp(row):
     row_date = datetime.datetime(year, month, day, hour, minutes, 0)
     return time.mktime(row_date.timetuple())
 
+
 def main(input_csv_path, output_folder, date_format="refl_3_5km_%Y_%m_%d_%H_%M"):
     """Interpolate track from given csv file and pickle it to disk"""
     csvfile = open(input_csv_path) 
@@ -41,6 +42,7 @@ def main(input_csv_path, output_folder, date_format="refl_3_5km_%Y_%m_%d_%H_%M")
 
     with open(os.path.join(output_folder, "Isabel.pickle"), "w") as track_dump:
         cPickle.dump(interp_track_dict, track_dump)
+
 
 # Main
 if __name__ == "__main__":
