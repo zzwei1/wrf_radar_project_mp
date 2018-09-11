@@ -7,8 +7,9 @@ import utils
 import arcpy
 import arcpy.da
 
+
 # Select largest N polygon for given dBZ
-def select_top_n(input_feature, output_dir, sort_column='AREA', filter_column='dbZ', values=[], top_count=1):
+def select_top_n(input_feature, output_dir, sort_column='AREA', filter_column='dbZ', values=(), top_count=1):
     
     arcpy.env.workspace = "in_memory"
     arcpy.env.overwriteOutput = True

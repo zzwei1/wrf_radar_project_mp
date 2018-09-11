@@ -51,7 +51,7 @@ def generate_dispersiveness(polygon, levels, workspace="in_memory"):
     adv_elongation = ""
     displacements_e = ""
     displacements_n = ""
-    dispersive_search_radius = 500e3
+    dispersive_search_radius = (100e3, 150e3, 200e3, 250e3, 500e3)
 
     for l in levels:
 
@@ -71,13 +71,34 @@ def generate_dispersiveness(polygon, levels, workspace="in_memory"):
         eye_x = 0
         eye_y = 0
 
+        # We need multiple level radar
+        for lr in dispersive_search_radius:
+            with arcpy.da.SearchCursor(polygon,
+                                       ["AREA", "TO_EYE", "SHAPE@", "EYE_X", "EYE_Y", "AREA_CVX", "PERIM", "SUM_AREA", "ANGLE"],
+                                       where_clause="dBZ=%d AND TO_EYE<=%f" % (l, lr)) as cur:
+                l_dispersive = []
+                cur.reset()
+                for row in cur:
+                    # Dispersiveness
+                    l_dispersive.append([row[0], row[1]])
+                # Calculate dispersiveness
+                areas = numpy.array(l_dispersive)
+                if areas.shape != (0,):
+                    total_areas = numpy.sum(areas[:, 0])
+                    area_frac = areas[:, 0] / total_areas
+                    dist_weight = areas[:, 1] / lr
+                    dispersiveness += "%f|" % numpy.sum(area_frac * dist_weight)
+                else:
+                    dispersiveness += "|"
+        if dispersiveness.endswith("|"):
+            dispersiveness = dispersiveness[:-1]
+        dispersiveness += ","
+
         with arcpy.da.SearchCursor(polygon,
                                    ["AREA", "TO_EYE", "SHAPE@", "EYE_X", "EYE_Y", "AREA_CVX", "PERIM", "SUM_AREA", "ANGLE"],
-                                   where_clause="dBZ=%d AND TO_EYE<=%f" % (l, dispersive_search_radius)) as cur:
+                                   where_clause="dBZ=%d AND TO_EYE<=%f" % (l, dispersive_search_radius[-1])) as cur:
             cur.reset()
             for row in cur:
-                # Dispersiveness
-                l_dispersive.append([row[0], row[1]])
                 # # For closure, we need exclude polygon in 50km buffer closed to the eye
                 # if row[1] >= 50000:
                 #     geom, x0, y0 = row[2:5]
@@ -95,16 +116,6 @@ def generate_dispersiveness(polygon, levels, workspace="in_memory"):
                 eye_x = row[3]
                 eye_y = row[4]
 
-        # Calculate dispersiveness
-        areas = numpy.array(l_dispersive)
-        if areas.shape != (0,):
-            total_areas = numpy.sum(areas[:, 0])
-            area_frac = areas[:, 0] / total_areas
-            dist_weight = areas[:, 1] / dispersive_search_radius
-            dispersiveness += "%f," % numpy.sum(area_frac * dist_weight)
-        else:
-            dispersiveness += ","
-
         # Calculate closure
         # Actually we don't need the closure dict in each level, we just need a final number.
         # total_deg = sum(closure.values())
@@ -116,6 +127,7 @@ def generate_dispersiveness(polygon, levels, workspace="in_memory"):
         # Calculate fragmentation.
         fareas = numpy.array(l_frag)
         if fareas.shape != (0,):
+            total_areas = numpy.sum(fareas[:, 0])
             total_cvx_areas = numpy.sum(fareas[:, 1])
             solidity = total_areas / total_cvx_areas
             # Connectivity
@@ -214,6 +226,17 @@ def add_track_position(polygon, timestamp, track_dict):
             row[7] = x0
             row[8] = y0
             cur.updateRow(row)
+
+    # We need apply a buffer clip at this stage, 600km should be large enough
+    sr = arcpy.Describe(polygon).spatialReference
+    arcpy.CreateFeatureclass_management("in_memory", "buffer_point", "POINT", spatial_reference=sr)
+    pt = arcpy.PointGeometry(arcpy.Point(x0, y0), sr)
+    with arcpy.da.InsertCursor("in_memory\\buffer_point", ["SHAPE@"]) as cur:
+        cur.insertRow([arcpy.PointGeometry(arcpy.Point(x0, y0))])
+    arcpy.Buffer_analysis("in_memory\\buffer_point", "in_memory\\buffer_area", buffer_distance_or_field="600 Kilometers",
+                          line_side="FULL", line_end_type="ROUND", dissolve_option="ALL", dissolve_field="", method="GEODESIC")
+    arcpy.Clip_analysis(polygon, "in_memory\\buffer_area", "in_memory\\clip_area")
+    arcpy.CopyFeatures_management("in_memory\\clip_area", polygon)
     print "%s: polygon distance to eye; convex hull distance to eye; closure" % polygon
 
 

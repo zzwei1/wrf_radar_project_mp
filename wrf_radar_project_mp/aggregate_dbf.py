@@ -5,7 +5,8 @@ import sys
 
 import dbf
 
-def aggreate_dbf(dbf_list, headers, output_name, parent_dir=".", begin=11, end=27):
+
+def aggreate_dbf(dbf_list, headers, output_name, parent_dir=".", begin=0, end=-4):
     f = open(output_name, "w")
     f.write(",".join(headers) + "\n")
     for q in dbf_list:
@@ -14,7 +15,8 @@ def aggreate_dbf(dbf_list, headers, output_name, parent_dir=".", begin=11, end=2
         l = q[begin:end] + "," + ",".join(map(str, list(g[0]))) + "\n"
         f.write(l)
     f.close()
-    
+
+
 def main():
     dirs = filter(os.path.isdir, sorted(os.listdir(".")))
     for d in dirs:
@@ -26,7 +28,8 @@ def main():
         f.close()
         aggreate_dbf(dbf_list, headers, "%s.csv" % d, parent_dir=d, begin=11, end=27)
         pass
-    
+
+
 if __name__ == "__main__":
     os.chdir(sys.argv[1])
     main()
