@@ -26,10 +26,13 @@ class RadiantLine(object):
         self.r_end = r_end * 1000.0
         self.proj = proj_template % (lon, lat)
         self.resolution = int(resolution)
+
+    def __enter__(self):
         self.__calculate_geometry()
+        return self
 
     def __calculate_geometry(self):
-        temp_name = arcpy.CreateScratchName("RadiantLine", data_type="Shapefile", workspace="E:\\")
+        temp_name = arcpy.CreateScratchName("RadiantLine_%d" % os.getpid(), data_type="Shapefile", workspace="E:\\")
         arcpy.CreateFeatureclass_management(os.path.dirname(temp_name), os.path.basename(temp_name), "POLYLINE", spatial_reference=self.proj)
         arcpy.AddField_management(temp_name, "DEG", "TEXT")
         with arcpy.da.InsertCursor(temp_name, ["SHAPE@", "DEG"]) as cur:
@@ -43,7 +46,11 @@ class RadiantLine(object):
                 cur.insertRow([line, str(i)])
         self.temp_name = temp_name
 
-    def save(self, output_name):
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if arcpy.Exists(self.temp_name):
+            arcpy.Delete_management(self.temp_name)
+
+    def copy(self, output_name):
         arcpy.Copy_management(self.temp_name, output_name)
 
 

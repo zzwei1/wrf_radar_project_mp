@@ -170,14 +170,14 @@ def generate_dispersiveness(polygon, levels, workspace="in_memory"):
             select3 = arcpy.Select_analysis(polygon, "E:\\select_temp_%d.shp" % pid, where_clause="dBZ=%d AND TO_EYE<=600000" % l)
             eye_lon, eye_lat = utils.projFunc(eye_x, eye_y, inverse=True)
             for s, e in closure_ring_km:
-                radiant = RadiantLine(lon=eye_lon, lat=eye_lat, r_start=s, r_end=e)
-                arcpy.Intersect_analysis(in_features=["E:\\select_temp_%d.shp" % pid, radiant.temp_name],
-                                         out_feature_class="E:\\closure_temp_%d.shp" % pid, join_attributes="ALL", output_type="INPUT")
-                with arcpy.da.SearchCursor("E:\\closure_temp_%d.shp" % pid, ["SHAPE@"]) as q:
-                    count = 0
-                    for k in q:
-                        count += 1
-                    closure_str += "%d|" % count
+                with RadiantLine(lon=eye_lon, lat=eye_lat, r_start=s, r_end=e) as radiant:
+                    arcpy.Intersect_analysis(in_features=["E:\\select_temp_%d.shp" % pid, radiant.temp_name],
+                                             out_feature_class="E:\\closure_temp_%d.shp" % pid, join_attributes="ALL", output_type="INPUT")
+                    with arcpy.da.SearchCursor("E:\\closure_temp_%d.shp" % pid, ["SHAPE@"]) as q:
+                        count = 0
+                        for k in q:
+                            count += 1
+                        closure_str += "%.2f|" % (count / 360.0)
                 # arcpy.Delete_management("E:\\select_temp.shp")
                 # arcpy.Delete_management("E:\\closure_temp.shp")
             # Remove last "|"

@@ -120,10 +120,10 @@ def run_wrf(case, skip_list, discard_existed):
 def main(argv):
     discard_existed = True
     skip_dict = {
-        "contour": 1,
-        "smooth": 1,
-        "basic": 1,
-        "closure": 1,
+        "contour": 0,
+        "smooth": 0,
+        "basic": 0,
+        "closure": 0,
     }
     skip_list = [k for k,v in skip_dict.iteritems() if v]
     # If we do the skip, we cannot discard previous results
