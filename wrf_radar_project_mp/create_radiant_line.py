@@ -21,11 +21,12 @@ proj_template = 'PROJCS["North_Pole_Azimuthal_Equidistant",' \
 
 class RadiantLine(object):
 
-    def __init__(self, lon, lat, r_start=0, r_end=600, resolution=1):
+    def __init__(self, lon, lat, r_start=0, r_end=600, resolution=1, direction=0):
         self.r_start = r_start * 1000.0  # km -> m
         self.r_end = r_end * 1000.0
         self.proj = proj_template % (lon, lat)
         self.resolution = int(resolution)
+        self.direction = direction
 
     def __enter__(self):
         self.__calculate_geometry()
@@ -35,7 +36,9 @@ class RadiantLine(object):
         temp_name = arcpy.CreateScratchName("RadiantLine_%d" % os.getpid(), data_type="Shapefile", workspace="E:\\")
         arcpy.CreateFeatureclass_management(os.path.dirname(temp_name), os.path.basename(temp_name), "POLYLINE", spatial_reference=self.proj)
         arcpy.AddField_management(temp_name, "DEG", "TEXT")
-        with arcpy.da.InsertCursor(temp_name, ["SHAPE@", "DEG"]) as cur:
+        arcpy.AddField_management(temp_name, "QUAD", "TEXT")
+        arcpy.AddField_management(temp_name, "MOVE", "TEXT")
+        with arcpy.da.InsertCursor(temp_name, ["SHAPE@", "DEG", "QUAD", "MOVE"]) as cur:
             for i in range(0, 360, self.resolution):
                 a = math.radians(i)
                 start_x = self.r_start * math.cos(a)
@@ -43,7 +46,7 @@ class RadiantLine(object):
                 end_x = self.r_end * math.cos(a)
                 end_y = self.r_end * math.sin(a)
                 line = arcpy.Polyline(arcpy.Array([arcpy.Point(start_x, start_y), arcpy.Point(end_x, end_y)]))
-                cur.insertRow([line, str(i)])
+                cur.insertRow([line, str(i), str(int(i / 90) + 1), str(int((i - self.direction) % 360 / 90 + 1))])
         self.temp_name = temp_name
 
     def __exit__(self, exc_type, exc_val, exc_tb):

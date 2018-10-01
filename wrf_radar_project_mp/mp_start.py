@@ -122,9 +122,9 @@ def start_mp(work_base_folder,
         pprint("Basic shape metrics skipped")
 
     # We will automatically interpolate track for radar.    
-    if working_mode != "wrf":
-        import interpolate_track
-        interpolate_track.main(utils.ibtrac, work_base_folder, stage1_folder, "%Y%m%d_%H%M%S")
+    # if working_mode != "wrf":
+    #     import interpolate_track
+    #     interpolate_track.main(utils.ibtrac, work_base_folder, stage1_folder, "%Y%m%d_%H%M%S")
 
     asm_input = utils.list_folder_sorted_ext(stage1_folder, ".shp")
     asm_input_path = [os.path.join(stage1_folder, p) for p in asm_input]
@@ -145,7 +145,7 @@ def start_mp(work_base_folder,
     from pprint import pprint as pp
     level_strs = map(str, levels)
     # "dispersiveness, closure_str, fragmentation, roundness, displacements_n, displacements_e"
-    variable_strs = ["dispersiveness", "closure", "frag", "asymmetry", "dis_e", "dis_n"]
+    variable_strs = ["dispersiveness", "closure", "frag", "asymmetry", "dis_e", "dis_n", "extent_move", "extent_geom"]
     header_list = map('-'.join, list(itertools.product(variable_strs, level_strs)))
     with open(os.path.join(work_base_folder, "dispersiveness_%d.csv" % os.getpid()), "w") as dispersive_output:
         dispersive_output.write("time_string," + ",".join(header_list) + ",comment\n")

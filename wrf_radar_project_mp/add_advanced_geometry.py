@@ -42,7 +42,7 @@ def line_dist(pt1, pt2):
     return s, a
 
 
-def generate_dispersiveness(polygon, levels, workspace="in_memory"):
+def generate_dispersiveness(polygon, levels, workspace="in_memory", move_dir=0):
     arcpy.env.workspace = workspace
     dispersiveness = ""
     closure_str = ""
@@ -51,6 +51,8 @@ def generate_dispersiveness(polygon, levels, workspace="in_memory"):
     adv_elongation = ""
     displacements_e = ""
     displacements_n = ""
+    extent_str = ""
+    extent_mv_str = ""
     dispersive_search_radius = (100e3, 150e3, 200e3, 250e3, 500e3)
 
     for l in levels:
@@ -75,7 +77,7 @@ def generate_dispersiveness(polygon, levels, workspace="in_memory"):
         for lr in dispersive_search_radius:
             with arcpy.da.SearchCursor(polygon,
                                        ["AREA", "TO_EYE", "SHAPE@", "EYE_X", "EYE_Y", "AREA_CVX", "PERIM", "SUM_AREA", "ANGLE"],
-                                       where_clause="dBZ=%d AND TO_EYE<=%f" % (l, lr)) as cur:
+                                       where_clause="dBZ=%d" % (l,)) as cur:
                 l_dispersive = []
                 cur.reset()
                 for row in cur:
@@ -96,7 +98,7 @@ def generate_dispersiveness(polygon, levels, workspace="in_memory"):
 
         with arcpy.da.SearchCursor(polygon,
                                    ["AREA", "TO_EYE", "SHAPE@", "EYE_X", "EYE_Y", "AREA_CVX", "PERIM", "SUM_AREA", "ANGLE"],
-                                   where_clause="dBZ=%d AND TO_EYE<=%f" % (l, dispersive_search_radius[-1])) as cur:
+                                   where_clause="dBZ=%d" % (l,)) as cur:
             cur.reset()
             for row in cur:
                 # # For closure, we need exclude polygon in 50km buffer closed to the eye
@@ -167,23 +169,49 @@ def generate_dispersiveness(polygon, levels, workspace="in_memory"):
         # Now we we can do closure in old way
         if "closure" not in utils.skip_list:
             closure_ring_km = [(0, 100), (100, 200), (200, 300), (300, 400), (400, 500)]
-            select3 = arcpy.Select_analysis(polygon, "E:\\select_temp_%d.shp" % pid, where_clause="dBZ=%d AND TO_EYE<=600000" % l)
+            select3 = arcpy.Select_analysis(polygon, "E:\\select_temp_3_%d.shp" % pid, where_clause="dBZ=%d" % l)
             eye_lon, eye_lat = utils.projFunc(eye_x, eye_y, inverse=True)
             for s, e in closure_ring_km:
                 with RadiantLine(lon=eye_lon, lat=eye_lat, r_start=s, r_end=e) as radiant:
-                    arcpy.Intersect_analysis(in_features=["E:\\select_temp_%d.shp" % pid, radiant.temp_name],
+                    arcpy.Intersect_analysis(in_features=["E:\\select_temp_3_%d.shp" % pid, radiant.temp_name],
                                              out_feature_class="E:\\closure_temp_%d.shp" % pid, join_attributes="ALL", output_type="INPUT")
-                    with arcpy.da.SearchCursor("E:\\closure_temp_%d.shp" % pid, ["SHAPE@"]) as q:
-                        count = 0
+                    with arcpy.da.SearchCursor("E:\\closure_temp_%d.shp" % pid, ["SHAPE@", "DEG"]) as q:
+                        count = set()
                         for k in q:
-                            count += 1
-                        closure_str += "%.2f|" % (count / 360.0)
+                            count.add(k[1])
+                        closure_str += "%.2f|" % (len(count) / 360.0)
                 # arcpy.Delete_management("E:\\select_temp.shp")
                 # arcpy.Delete_management("E:\\closure_temp.shp")
             # Remove last "|"
             if closure_str.endswith("|"):
                 closure_str = closure_str[:-1]
             closure_str += ","
+
+        if "extent" not in utils.skip_list:
+            select4 = arcpy.Select_analysis(polygon, "E:\\select_temp_4_%d.shp" % pid, where_clause="dBZ=%d" % l)
+            eye_lon, eye_lat = utils.projFunc(eye_x, eye_y, inverse=True)
+            extent_mv = {"1": 0, "2": 0, "3": 0, "4": 0}
+            extent_nat = {"1": 0, "2": 0, "3": 0, "4": 0}
+            with RadiantLine(lon=eye_lon, lat=eye_lat, r_start=0, r_end=600, direction=int(move_dir)) as radiant:
+                arcpy.Intersect_analysis(in_features=["E:\\select_temp_4_%d.shp" % pid, radiant.temp_name],
+                                         out_feature_class="E:\\extent_temp_%d.shp" % pid, join_attributes="ALL", output_type="INPUT")
+                # sr = arcpy.Describe(polygon).spatialReference
+                with arcpy.da.SearchCursor("E:\\extent_temp_%d.shp" % pid, ["SHAPE@", "QUAD", "MOVE"]) as q:
+                    for k in q:
+                        quad = k[1]
+                        move = k[2]
+                        geom = k[0]
+                        for part in geom.getPart():
+                            for pt in part:
+                                dist = abs((pt.X + pt.Y * 1j) - (eye_x + eye_y * 1j)) / 1000.0
+                                extent_mv[move] = max(extent_mv[move], dist)
+                                extent_nat[quad] = max(extent_nat[quad], dist)
+                extent_mv_str += "%.2f|%.2f|%.2f|%.2f" % (extent_mv["1"], extent_mv["2"], extent_mv["3"], extent_mv["4"])
+                extent_str += "%.2f|%.2f|%.2f|%.2f" % (extent_nat["1"], extent_nat["2"], extent_nat["3"], extent_nat["4"])
+            extent_mv_str += ","
+            extent_str += ","
+
+
 
         # # Get largest 3 polygons
         # if False:
@@ -206,7 +234,7 @@ def generate_dispersiveness(polygon, levels, workspace="in_memory"):
         # else:
         #     adv_elongation += ","
 
-    return dispersiveness, closure_str, fragmentation, roundness, displacements_n, displacements_e
+    return dispersiveness, closure_str, fragmentation, roundness, displacements_n, displacements_e, extent_mv_str, extent_str
 
 
 def add_track_position(polygon, timestamp, track_dict):
@@ -215,16 +243,19 @@ def add_track_position(polygon, timestamp, track_dict):
     arcpy.AddField_management(polygon, "TO_EYE", "DOUBLE")
     arcpy.AddField_management(polygon, "CVX_TO_EYE", "DOUBLE")
     arcpy.AddField_management(polygon, "ANGLE", "DOUBLE")
-    x0, y0 = track_dict[timestamp]
+    arcpy.AddField_management(polygon, "DIR", "LONG")
+    x0, y0 = track_dict[timestamp]["pos"]
+    move = track_dict[timestamp]["dir"]
     with arcpy.da.UpdateCursor(polygon,
                                ["SHAPE@", "CNTRX", "CNTRY",
                                 "TO_EYE", "CNTRX_CVX", "CNTRY_CVX",
-                                "CVX_TO_EYE", "EYE_X", "EYE_Y", "ANGLE"]) as cur:
+                                "CVX_TO_EYE", "EYE_X", "EYE_Y", "ANGLE", "DIR"]) as cur:
         for row in cur:
             row[3], row[9] = line_dist((x0, y0), (row[1], row[2]))
             # row[6] = line_dist((x0, y0), (row[4], row[5]))
             row[7] = x0
             row[8] = y0
+            row[10] = int(move)
             cur.updateRow(row)
 
     # We need apply a buffer clip at this stage, 600km should be large enough
@@ -250,7 +281,7 @@ def clean_fields(polygon):
 
 
 def execute(input_feat, output_feat, track_dict, date_format, levels=(20, 25, 30, 35, 40), prefix_start=0,
-            prefix_end=-4):
+            prefix_end=15):
     arcpy.env.overwriteOutput = True
     arcpy.env.workspace = "in_memory"
     try:
@@ -265,7 +296,8 @@ def execute(input_feat, output_feat, track_dict, date_format, levels=(20, 25, 30
         # Clean fields
         clean_fields(output_feat)
         # Dispersivness and EVERYTHING
-        dispersive = generate_dispersiveness(output_feat, levels)
+        move = track_dict[timestamp]["dir"]
+        dispersive = generate_dispersiveness(output_feat, levels, move_dir=move)
         print "OK", dispersive
         return dispersive
     except Exception, ex:

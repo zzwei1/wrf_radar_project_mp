@@ -3,6 +3,7 @@ import os
 import datetime
 
 import pandas as pd
+from pprint import pprint as pp
 
 import arcpy
 
@@ -13,10 +14,11 @@ arcpy.CheckOutExtension("spatial")
 arcpy.env.overwriteOutput = True
 arcpy.env.workspace = "in_memory"
 
-radar_base_folder = r'E:\radar_isabel'
+radar_base_folder = r'D:\H07\3_5'
 
 # wrf_base_folder = r'C:\Users\sugar\Desktop\wrf3.6.1'
 wrf_base_folder = r'D:\isabel_wrf_restart\windfield'
+
 wrf_schemes = [  # Biased cases
     # 'ARWH_KainFritschCu_Morrison', #0
     # 'ARWH_KainFritschCu_WSM6',
@@ -42,37 +44,21 @@ wrf_postfix = ''
 #         (datetime.datetime(2003, 9, 19, 0, 0, 0), datetime.datetime(2003, 9, 19, 23, 59, 59),
 #          r'E:\wrf3.6.1\Mask\mask2.shp')]
 
-radar_levels = range(20, 45, 5)
-wrf_bias = (
-    # [23, 28, 33, 38, 44],  # KF/M
-    # [14, 20, 27, 34, 41],  # KF/WSM6
-    # [20, 25, 29, 34, 40],  # TK/M
-    # [17, 23, 28, 33, 40],  # TK/WSM6
-    # None,
-    # None,
-    # None,
-    # None,
-    # None,
-    # None,
-    # None
-    [17, 33, 50],
-    [17, 33, 50],
-    [17, 33, 50]
-)
+radar_levels = [20, 40]
 
 
 def run_radar(skip_list, discard_existed):
     # Radar resolution = 30min, WRF resolution = 30min
     analytical_time = map(pd.Timestamp.to_datetime,
-                          pd.date_range('2003-09-18 00:00:00', '2003-09-18 01:00:00', freq="30min"))
-    if __debug__:
-        print(analytical_time)
+                          pd.date_range('2007-09-12 18:00:00', '2007-09-14 12:00:00', freq="10min"))
     utils.working_mode = "radar"
+    print(analytical_time)
     _, file_list = utils.list_files_by_timestamp(radar_base_folder,
                                                  analytical_time,
-                                                 allow_diff_sec=600,
+                                                 allow_diff_sec=5,
                                                  file_ext="img",
-                                                 dformat="%Y%m%d-%H%M%S")
+                                                 dformat="%Y%m%d_%H%M%S")
+    pp(file_list)
     mp_start.start_mp(work_base_folder=radar_base_folder,
                       file_list=file_list,
                       levels=radar_levels,
@@ -83,46 +69,15 @@ def run_radar(skip_list, discard_existed):
 
 
 def run_wrf(case, skip_list, discard_existed):
-    # global masks
-    utils.working_mode = "wrf"
-    if wrf_bias[case]:
-        wrf_levels = wrf_bias[case]
-    else:
-        wrf_levels = radar_levels
-    # mask_files, wrf_files = utils.list_files_by_timestamp(os.path.join(wrf_base_folder, wrf_schemes[case], wrf_postfix),
-    #                                                       analytical_time,
-    #                                                       allow_diff_sec=300,
-    #                                                       file_ext="nc",
-    #                                                       dformat="refl_3.5km_%Y-%m-%d_%H_%M",
-    #                                                       mask_config=None)
-    # mask_files = filter(None, mask_files)
-    # wrf_files = filter(None, wrf_files)
-
-    # mp_start.start_mp(work_base_folder=os.path.join(wrf_base_folder, wrf_schemes[case], 'reflec_netcdf'),
-    #                   file_list=None,
-    #                   levels=wrf_levels,
-    #                   masks=None,
-    #                   working_mode="wrf",
-    #                   stage2_datetime_format="refl_3_5km_%Y_%m_%d_%H_%M",
-    #                   skip_list=skip_list,
-    #                   discard=discard_existed)
-
-    mp_start.start_mp(work_base_folder=os.path.join(wrf_base_folder, wrf_schemes[case]),
-                      file_list=None,
-                      levels=wrf_levels,
-                      masks=None,
-                      working_mode="wrf",
-                      stage2_datetime_format="V850_d01_850mb_%Y_%m_%d_%H_%M",
-                      skip_list=skip_list,
-                      discard=discard_existed)
+    pass
 
 
 def main(argv):
     discard_existed = True
     skip_dict = {
-        "contour": 0,
-        "smooth": 0,
-        "basic": 0,
+        "contour": 1,
+        "smooth": 1,
+        "basic": 1,
         "closure": 0,
     }
     skip_list = [k for k,v in skip_dict.iteritems() if v]
@@ -131,7 +86,8 @@ def main(argv):
         discard_existed = False
     print skip_list, discard_existed
     utils.skip_list = skip_list
-    case = 0
+    # So we run radar case
+    case = -1
     try:
         case = int(argv[1])
     except IndexError:
@@ -147,7 +103,6 @@ def main(argv):
     except (IndexError, ValueError):
         pass
     utils.search_radius = search_radius
-
 
 
 if __name__ == "__main__":

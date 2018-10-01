@@ -7,7 +7,7 @@ from utils import create_dirs, relocate
 
 import arcpy
 
-def execute(input_raster, output_feat, contour_levels=[15,20,25,30,35,40], mask=None):
+def execute(input_raster, output_feat, contour_levels=(20, 40), mask=None):
     arcpy.env.workspace = "in_memory" 
     arcpy.env.overwriteOutput = True    
     arcpy.env.outputCoordinateSystem=utils.spatialRef

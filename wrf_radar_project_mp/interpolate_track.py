@@ -9,7 +9,9 @@ import time
 from pprint import pprint as pp
 
 import numpy
+import math
 from scipy.interpolate import interp1d
+from scipy.misc import derivative
 
 import pyproj
 
@@ -30,8 +32,8 @@ def date_to_timestamp(row):
 
 
 def date_to_timestamp_ibtracs(row):
-    CASE_NAME = utils.case_name.upper();
-    if(row['Season'] != utils.case_year or row['Name'] != CASE_NAME):
+    case_name = utils.case_name.upper()
+    if row['Season'] != utils.case_year or row['Name'] != case_name:
         return None
     t_date, t_time = row['ISO_time'].split(' ')
     t_year, t_month, t_day = t_date.split('/')
@@ -56,21 +58,26 @@ def main(input_csv_path, work_base_folder, input_data_folder, date_format="%Y%m%
     
     fx = interp1d(T, X, kind='cubic')
     fy = interp1d(T, Y, kind='cubic')
-    
+
     # List files
-    date_str = [p[str_start:str_end] for p in utils.list_folder_sorted_ext(input_data_folder, ".shp")]
+    date_str = [p[str_start:str_end] for p in utils.list_folder_sorted_ext(input_data_folder, ".img")]
     date_obj = [datetime.datetime.strptime(p, date_format) for p in date_str]
     timestamps = [time.mktime(p.timetuple()) for p in date_obj]
-    interp_track = [(p, proj(fx(p), fy(p))) for p in timestamps]
-    
-    interp_track_dict = dict(interp_track)
+    interp_track_dict = {}
+    for p in timestamps:
+        interp_track_dict[p] = {}
+        interp_track_dict[p]['pos'] = proj(fx(p), fy(p))
+        vx = derivative(fx, p)
+        vy = derivative(fy, p)
+        interp_track_dict[p]['dir'] = int(math.degrees(math.atan2(vy, vx)))
     pp(interp_track_dict)
     
     with open(os.path.join(work_base_folder, utils.case_name + ".pickle"), "w") as track_dump:
         cPickle.dump(interp_track_dict, track_dump)
         
             
-            
+if __name__ == "__main__":
+    main(utils.ibtrac, r"D:\H07\3_5", r"D:\H07\3_5", "%Y%m%d_%H%M%S")
         
     
     
