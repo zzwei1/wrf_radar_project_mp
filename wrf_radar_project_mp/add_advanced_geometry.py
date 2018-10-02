@@ -19,6 +19,8 @@ import numpy
 import arcpy
 import arcpy.da
 
+from add_basic_geometry import add_basic_geometry_attr
+
 from pprint import pprint
 
 # def calc_closure(geom, x0, y0):
@@ -77,7 +79,7 @@ def generate_dispersiveness(polygon, levels, workspace="in_memory", move_dir=0):
         for lr in dispersive_search_radius:
             with arcpy.da.SearchCursor(polygon,
                                        ["AREA", "TO_EYE", "SHAPE@", "EYE_X", "EYE_Y", "AREA_CVX", "PERIM", "SUM_AREA", "ANGLE"],
-                                       where_clause="dBZ=%d" % (l,)) as cur:
+                                       where_clause="dBZ=%d and TO_EYE<=%f" % (l, lr)) as cur:
                 l_dispersive = []
                 cur.reset()
                 for row in cur:
@@ -190,24 +192,26 @@ def generate_dispersiveness(polygon, levels, workspace="in_memory", move_dir=0):
         if "extent" not in utils.skip_list:
             select4 = arcpy.Select_analysis(polygon, "E:\\select_temp_4_%d.shp" % pid, where_clause="dBZ=%d" % l)
             eye_lon, eye_lat = utils.projFunc(eye_x, eye_y, inverse=True)
-            extent_mv = {"1": 0, "2": 0, "3": 0, "4": 0}
-            extent_nat = {"1": 0, "2": 0, "3": 0, "4": 0}
+            extent_mv = {"1": [0] * 90, "2": [0] * 90, "3": [0] * 90, "4": [0] * 90}
+            extent_nat = {"1": [0] * 90, "2": [0] * 90, "3": [0] * 90, "4": [0] * 90}
             with RadiantLine(lon=eye_lon, lat=eye_lat, r_start=0, r_end=600, direction=int(move_dir)) as radiant:
                 arcpy.Intersect_analysis(in_features=["E:\\select_temp_4_%d.shp" % pid, radiant.temp_name],
                                          out_feature_class="E:\\extent_temp_%d.shp" % pid, join_attributes="ALL", output_type="INPUT")
                 # sr = arcpy.Describe(polygon).spatialReference
-                with arcpy.da.SearchCursor("E:\\extent_temp_%d.shp" % pid, ["SHAPE@", "QUAD", "MOVE"]) as q:
+                with arcpy.da.SearchCursor("E:\\extent_temp_%d.shp" % pid, ["SHAPE@", "QUAD", "MOVE", "DEG", "MV_DEG"]) as q:
                     for k in q:
                         quad = k[1]
                         move = k[2]
                         geom = k[0]
+                        deg = int(k[3]) % 90
+                        mv_deg = int(k[4]) % 90
                         for part in geom.getPart():
                             for pt in part:
                                 dist = abs((pt.X + pt.Y * 1j) - (eye_x + eye_y * 1j)) / 1000.0
-                                extent_mv[move] = max(extent_mv[move], dist)
-                                extent_nat[quad] = max(extent_nat[quad], dist)
-                extent_mv_str += "%.2f|%.2f|%.2f|%.2f" % (extent_mv["1"], extent_mv["2"], extent_mv["3"], extent_mv["4"])
-                extent_str += "%.2f|%.2f|%.2f|%.2f" % (extent_nat["1"], extent_nat["2"], extent_nat["3"], extent_nat["4"])
+                                extent_mv[move][mv_deg] = max(extent_mv[move][mv_deg], dist)
+                                extent_nat[quad][deg] = max(extent_nat[quad][deg], dist)
+                extent_mv_str += "%.2f|%.2f|%.2f|%.2f" % (sum(extent_mv["1"]) / 90.0, sum(extent_mv["2"]) / 90.0, sum(extent_mv["3"]) / 90.0, sum(extent_mv["4"]) / 90.0)
+                extent_str += "%.2f|%.2f|%.2f|%.2f" % (sum(extent_nat["1"]) / 90.0, sum(extent_nat["2"]) / 90.0, sum(extent_nat["3"]) / 90.0, sum(extent_nat["4"]) / 90.0)
             extent_mv_str += ","
             extent_str += ","
 
@@ -246,6 +250,20 @@ def add_track_position(polygon, timestamp, track_dict):
     arcpy.AddField_management(polygon, "DIR", "LONG")
     x0, y0 = track_dict[timestamp]["pos"]
     move = track_dict[timestamp]["dir"]
+
+
+    # We need apply a buffer clip at this stage, 600km should be large enough
+    sr = arcpy.Describe(polygon).spatialReference
+    arcpy.CreateFeatureclass_management("in_memory", "buffer_point", "POINT", spatial_reference=sr)
+    pt = arcpy.PointGeometry(arcpy.Point(x0, y0), sr)
+    with arcpy.da.InsertCursor("in_memory\\buffer_point", ["SHAPE@"]) as cur:
+        cur.insertRow([arcpy.PointGeometry(arcpy.Point(x0, y0))])
+    arcpy.Buffer_analysis("in_memory\\buffer_point", "in_memory\\buffer_area", buffer_distance_or_field="600 Kilometers",
+                          line_side="FULL", line_end_type="ROUND", dissolve_option="ALL", dissolve_field="", method="GEODESIC")
+    arcpy.Clip_analysis(polygon, "in_memory\\buffer_area", "in_memory\\clip_area")
+    arcpy.CopyFeatures_management("in_memory\\clip_area", polygon)
+    add_basic_geometry_attr(polygon)
+
     with arcpy.da.UpdateCursor(polygon,
                                ["SHAPE@", "CNTRX", "CNTRY",
                                 "TO_EYE", "CNTRX_CVX", "CNTRY_CVX",
@@ -258,16 +276,6 @@ def add_track_position(polygon, timestamp, track_dict):
             row[10] = int(move)
             cur.updateRow(row)
 
-    # We need apply a buffer clip at this stage, 600km should be large enough
-    sr = arcpy.Describe(polygon).spatialReference
-    arcpy.CreateFeatureclass_management("in_memory", "buffer_point", "POINT", spatial_reference=sr)
-    pt = arcpy.PointGeometry(arcpy.Point(x0, y0), sr)
-    with arcpy.da.InsertCursor("in_memory\\buffer_point", ["SHAPE@"]) as cur:
-        cur.insertRow([arcpy.PointGeometry(arcpy.Point(x0, y0))])
-    arcpy.Buffer_analysis("in_memory\\buffer_point", "in_memory\\buffer_area", buffer_distance_or_field="600 Kilometers",
-                          line_side="FULL", line_end_type="ROUND", dissolve_option="ALL", dissolve_field="", method="GEODESIC")
-    arcpy.Clip_analysis(polygon, "in_memory\\buffer_area", "in_memory\\clip_area")
-    arcpy.CopyFeatures_management("in_memory\\clip_area", polygon)
     print "%s: polygon distance to eye; convex hull distance to eye; closure" % polygon
 
 

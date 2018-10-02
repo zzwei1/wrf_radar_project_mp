@@ -38,7 +38,8 @@ class RadiantLine(object):
         arcpy.AddField_management(temp_name, "DEG", "TEXT")
         arcpy.AddField_management(temp_name, "QUAD", "TEXT")
         arcpy.AddField_management(temp_name, "MOVE", "TEXT")
-        with arcpy.da.InsertCursor(temp_name, ["SHAPE@", "DEG", "QUAD", "MOVE"]) as cur:
+        arcpy.AddField_management(temp_name, "MV_DEG", "TEXT")
+        with arcpy.da.InsertCursor(temp_name, ["SHAPE@", "DEG", "QUAD", "MOVE", "MV_DEG"]) as cur:
             for i in range(0, 360, self.resolution):
                 a = math.radians(i)
                 start_x = self.r_start * math.cos(a)
@@ -46,7 +47,7 @@ class RadiantLine(object):
                 end_x = self.r_end * math.cos(a)
                 end_y = self.r_end * math.sin(a)
                 line = arcpy.Polyline(arcpy.Array([arcpy.Point(start_x, start_y), arcpy.Point(end_x, end_y)]))
-                cur.insertRow([line, str(i), str(int(i / 90) + 1), str(int((i - self.direction) % 360 / 90 + 1))])
+                cur.insertRow([line, str(i), str(int(i / 90) + 1), str(int((i - self.direction) % 360 / 90 + 1)), str(int((i - self.direction) % 360))])
         self.temp_name = temp_name
 
     def __exit__(self, exc_type, exc_val, exc_tb):
