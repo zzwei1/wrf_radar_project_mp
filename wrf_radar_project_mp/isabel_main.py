@@ -17,7 +17,9 @@ radar_base_folder = r'E:\radar_isabel'
 
 # wrf_base_folder = r'C:\Users\sugar\Desktop\wrf3.6.1'
 wrf_base_folder = r'D:\isabel_wrf_restart\windfield'
-wrf_schemes = [  # Biased cases
+
+# Biased cases
+wrf_schemes = [  
     # 'ARWH_KainFritschCu_Morrison', #0
     # 'ARWH_KainFritschCu_WSM6',
     # 'ARWH_TiedtkeCu_Morrison',
@@ -64,9 +66,10 @@ wrf_bias = (
 def run_radar(skip_list, discard_existed):
     # Radar resolution = 30min, WRF resolution = 30min
     analytical_time = map(pd.Timestamp.to_datetime,
-                          pd.date_range('2003-09-18 00:00:00', '2003-09-18 01:00:00', freq="30min"))
-    if __debug__:
-        print(analytical_time)
+                          pd.date_range('2003-09-18 00:00:00', 
+                                        '2003-09-18 01:00:00', 
+                                        freq="30min"))
+    print(analytical_time)
     utils.working_mode = "radar"
     _, file_list = utils.list_files_by_timestamp(radar_base_folder,
                                                  analytical_time,
@@ -89,23 +92,6 @@ def run_wrf(case, skip_list, discard_existed):
         wrf_levels = wrf_bias[case]
     else:
         wrf_levels = radar_levels
-    # mask_files, wrf_files = utils.list_files_by_timestamp(os.path.join(wrf_base_folder, wrf_schemes[case], wrf_postfix),
-    #                                                       analytical_time,
-    #                                                       allow_diff_sec=300,
-    #                                                       file_ext="nc",
-    #                                                       dformat="refl_3.5km_%Y-%m-%d_%H_%M",
-    #                                                       mask_config=None)
-    # mask_files = filter(None, mask_files)
-    # wrf_files = filter(None, wrf_files)
-
-    # mp_start.start_mp(work_base_folder=os.path.join(wrf_base_folder, wrf_schemes[case], 'reflec_netcdf'),
-    #                   file_list=None,
-    #                   levels=wrf_levels,
-    #                   masks=None,
-    #                   working_mode="wrf",
-    #                   stage2_datetime_format="refl_3_5km_%Y_%m_%d_%H_%M",
-    #                   skip_list=skip_list,
-    #                   discard=discard_existed)
 
     mp_start.start_mp(work_base_folder=os.path.join(wrf_base_folder, wrf_schemes[case]),
                       file_list=None,
@@ -126,6 +112,7 @@ def main(argv):
         "closure": 0,
     }
     skip_list = [k for k,v in skip_dict.iteritems() if v]
+    
     # If we do the skip, we cannot discard previous results
     if skip_list:
         discard_existed = False

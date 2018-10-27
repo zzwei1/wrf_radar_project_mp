@@ -58,8 +58,8 @@ def main(input_csv_path, work_base_folder, input_data_folder, date_format="%Y%m%
     fy = interp1d(T, Y, kind='cubic')
     
     # List files
-    date_str = [p[str_start:str_end] for p in utils.list_folder_sorted_ext(input_data_folder, ".shp")]
-    date_obj = [datetime.datetime.strptime(p, date_format) for p in date_str]
+    date_str = utils.list_folder_sorted_ext(input_data_folder, ".img")
+    date_obj = [utils.smart_lookup_date(p, date_format) for p in date_str]
     timestamps = [time.mktime(p.timetuple()) for p in date_obj]
     interp_track = [(p, proj(fx(p), fy(p))) for p in timestamps]
     

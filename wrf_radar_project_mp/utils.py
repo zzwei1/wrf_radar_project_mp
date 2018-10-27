@@ -7,6 +7,7 @@ import pyproj
 import datetime
 import time
 import numpy
+import re
 
 
 def create_dirs(dirs, discard=False):
@@ -52,27 +53,58 @@ def list_folder_sorted_ext(folder=".", ext=None):
     return sorted(filter(lambda p: ext is None or p.endswith(ext), os.listdir(folder)))
 
 
+def smart_lookup_date(dstring, dformat, try_again=0):
+    a = re.compile(r"[-_\s:\.]")
+    # Let us trim string first.
+    dstring = a.sub("", dstring)
+    dformat = a.sub("", dformat)
+    dformat_len = len(datetime.datetime.strftime(datetime.datetime.now(), dformat))
+    print "date string length is", dformat_len
+    for i in range(len(dstring)):
+        # End of search
+        if i + dformat_len > len(dstring):
+            break
+        sub_dstring = dstring[i:i + dformat_len]
+        try:
+            p_datetime = datetime.datetime.strptime(sub_dstring, dformat)
+        except ValueError:
+            pass
+        assert(isinstance(p_datetime, datetime.datetime))
+        if 1950 < p_datetime.year < 2050:  # 100 year range should be long enough
+            print("Found datetime", p_datetime)
+            return p_datetime
+    if try_again:
+        return None
+    # We didn't find a datetime at all!
+    # Well let us try if we can use a shorter one without seconds
+    else:
+        return smart_lookup_date(dformat.replace("%S", ""), dstring, 1)
+
+
+def __find_files_in_list_by_time(files, ref_time, dformat, mask_config=None, allow_diff_sec=300):
+    if not files:
+        return None, None
+    r = time.mktime(ref_time.timetuple())
+    # We need to be smart enough to find file name
+    t = [smart_lookup_date(os.path.basename(os.path.splitext(f)[0]), dformat) for f in files]
+    s = numpy.array([time.mktime(p.timetuple()) for p in t])
+    d = numpy.abs(s - r)
+    if numpy.min(d) > allow_diff_sec:
+        return None, None
+    i = numpy.argmin(d)
+    mask = None
+    if mask_config is not None:
+        for m in mask_config:
+            if m[0] <= t[i] < m[1]:
+                mask = m[2]
+                break
+    return mask, files[i]
+    
+
 def list_files_by_timestamp(basedir, timelist, dformat, file_ext=None, mask_config=None, allow_diff_sec=300):
     '''find a list of files closest to given timelist'''
-
-    def __find_files_in_list_by_time(files, ref_time):
-        r = time.mktime(ref_time.timetuple())
-        t = [datetime.datetime.strptime(os.path.basename(os.path.splitext(f)[0]), dformat) for f in files]
-        s = numpy.array([time.mktime(p.timetuple()) for p in t])
-        d = numpy.abs(s - r)
-        if numpy.min(d) > allow_diff_sec:
-            return None, None
-        i = numpy.argmin(d)
-        mask = None
-        if mask_config is not None:
-            for m in mask_config:
-                if m[0] <= t[i] < m[1]:
-                    mask = m[2]
-                    break
-        return mask, files[i]
-
     files = list_folder_sorted_ext(basedir, file_ext)
-    return zip(*[__find_files_in_list_by_time(files, t) for t in timelist])
+    return zip(*[__find_files_in_list_by_time(files, t, dformat) for t in timelist])
 
 
 # configs

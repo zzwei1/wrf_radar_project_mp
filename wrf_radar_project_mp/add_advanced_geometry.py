@@ -259,7 +259,7 @@ def execute(input_feat, output_feat, track_dict, date_format, levels=(20, 25, 30
         print "Copying %s -> %s" % (input_feat, output_feat)
         # Get timestamp
         q = os.path.basename(input_feat)
-        timestamp = time.mktime(datetime.datetime.strptime(q[prefix_start:prefix_end], date_format).timetuple())
+        timestamp = time.mktime(utils.smart_lookup_date(q, date_format).timetuple())
         # Add distance to track
         add_track_position(output_feat, timestamp, track_dict)
         # Clean fields
