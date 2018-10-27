@@ -14,7 +14,7 @@ arcpy.CheckOutExtension("spatial")
 arcpy.env.overwriteOutput = True
 arcpy.env.workspace = "in_memory"
 
-radar_base_folder = r'D:\H07\3_5'
+radar_base_folder = r'D:\H07\test'
 
 # wrf_base_folder = r'C:\Users\sugar\Desktop\wrf3.6.1'
 wrf_base_folder = r'D:\isabel_wrf_restart\windfield'
@@ -50,7 +50,7 @@ radar_levels = [20, 40]
 def run_radar(skip_list, discard_existed):
     # Radar resolution = 30min, WRF resolution = 30min
     analytical_time = map(pd.Timestamp.to_datetime,
-                          pd.date_range('2007-09-12 18:00:00', '2007-09-14 11:59:00', freq="30min"))
+                          pd.date_range('2004-09-28 17:50:00', '2004-09-28 18:00:00', freq="10min"))
     utils.working_mode = "radar"
     print(analytical_time)
     _, file_list = utils.list_files_by_timestamp(radar_base_folder,

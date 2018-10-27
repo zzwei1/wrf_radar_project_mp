@@ -35,12 +35,12 @@ def execute(in_feature, out_feature, contour_level=None):
                 
             out2_0 = arcpy.CreateUniqueName(out1, workspace)
             arcpy.FeatureToPolygon_management(out1, out2_0)
-            out2_1 = arcpy.CreateUniqueName(out2_0, workspace)
-            arcpy.Union_analysis([out2_0], out2_1, join_attributes="ONLY_FID", gaps="NO_GAPS")
-            out2 = arcpy.CreateUniqueName(out2_1, workspace)
-            arcpy.Dissolve_management(out2_1, out2, multi_part="SINGLE_PART")
+            # out2_1 = arcpy.CreateUniqueName(out2_0, workspace)
+            # arcpy.Union_analysis([out2_0], out2_1, join_attributes="ONLY_FID", gaps="NO_GAPS")
+            out2 = arcpy.CreateUniqueName(out2_0, workspace)
+            arcpy.Dissolve_management(out2_0, out2, multi_part="SINGLE_PART")
             temp_file.append(out2_0)
-            temp_file.append(out2_1)
+            # temp_file.append(out2_1)
             temp_file.append(out2)
             
             out3 = arcpy.CreateUniqueName(out2, workspace)
