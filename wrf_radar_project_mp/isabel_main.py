@@ -128,6 +128,7 @@ def main(argv):
     else:
         run_wrf(case, skip_list, discard_existed)
 
+    # Do change here!
     search_radius = 500e3
     try:
         search_radius = int(argv[2]) * 1000
