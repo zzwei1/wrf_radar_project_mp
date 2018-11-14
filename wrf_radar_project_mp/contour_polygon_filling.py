@@ -1,4 +1,7 @@
-﻿__author__ = 'jtang8756'
+﻿from __future__ import print_function
+from builtins import map
+from builtins import range
+__author__ = 'jtang8756'
 
 import os
 
@@ -21,7 +24,7 @@ def execute(in_feature, out_feature, contour_level=None):
     cntr = os.path.basename(in_feature)
 
     if contour_level is None:
-        levels = range(15,50,5)
+        levels = list(range(15,50,5))
     else:
         levels = contour_level
 
@@ -30,7 +33,7 @@ def execute(in_feature, out_feature, contour_level=None):
         try:
             out1 = arcpy.CreateUniqueName(arcpy.ValidateTableName(cntr.replace(".shp", "_%d" % value)), workspace)
             arcpy.Select_analysis(in_feature, out1, where_clause="CONTOUR=%d" % value)
-            print "Select into %s where contour=%d" % (out1, value)   
+            print("Select into %s where contour=%d" % (out1, value))   
             temp_file.append(out1)
                 
             out2_0 = arcpy.CreateUniqueName(out1, workspace)
@@ -51,7 +54,7 @@ def execute(in_feature, out_feature, contour_level=None):
             arcpy.SmoothPolygon_cartography(out2, out3, "PAEK", "7000 Meters", "NO_FIXED")
             # out3 = out2
             # arcpy.Copy_management(out2, out3)
-            print "Copy and smooth %s -> %s" % (out2, out3)              
+            print("Copy and smooth %s -> %s" % (out2, out3))              
             calc_field(out3, {"AREA1":  "!shape.area!", "dbZ": "%d" % value }, True)
             # temp_file.append(out3)
             
@@ -61,19 +64,19 @@ def execute(in_feature, out_feature, contour_level=None):
             
             fn_list.append(out4)
     
-        except Exception, ex:
-            print ex.message
+        except Exception as ex:
+            print(ex.message)
             continue
             
         # End of loop
         
-    print fn_list, "->", out_feature
+    print(fn_list, "->", out_feature)
     if fn_list:
         arcpy.Merge_management(fn_list, out_feature)  
-        map(arcpy.Delete_management, temp_file)
-        print "OK"
+        list(map(arcpy.Delete_management, temp_file))
+        print("OK")
     else:
-        print "EMPTY"
+        print("EMPTY")
 
 
 

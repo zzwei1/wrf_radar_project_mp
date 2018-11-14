@@ -1,10 +1,15 @@
 # coding=utf-8
 
 
+from __future__ import division
+from __future__ import print_function
+from future import standard_library
+standard_library.install_aliases()
+from past.utils import old_div
 import os
 import datetime
 import time
-import cPickle
+import pickle
 import math
 import sys
 import logging
@@ -89,8 +94,8 @@ def generate_dispersiveness(polygon, levels, workspace="in_memory", move_dir=0):
                 areas = numpy.array(l_dispersive)
                 if areas.shape != (0,):
                     total_areas = numpy.sum(areas[:, 0])
-                    area_frac = areas[:, 0] / total_areas
-                    dist_weight = areas[:, 1] / lr
+                    area_frac = old_div(areas[:, 0], total_areas)
+                    dist_weight = old_div(areas[:, 1], lr)
                     dispersiveness += "%f|" % numpy.sum(area_frac * dist_weight)
                 else:
                     dispersiveness += "|"
@@ -120,23 +125,15 @@ def generate_dispersiveness(polygon, levels, workspace="in_memory", move_dir=0):
                 eye_x = row[3]
                 eye_y = row[4]
 
-        # Calculate closure
-        # Actually we don't need the closure dict in each level, we just need a final number.
-        # total_deg = sum(closure.values())
-        # if total_deg:
-        #     closure_str += "%f," % (total_deg / 360.0)
-        # else:
-        #     closure_str += ","
-
         # Calculate fragmentation.
         fareas = numpy.array(l_frag)
         if fareas.shape != (0,):
             total_areas = numpy.sum(fareas[:, 0])
             total_cvx_areas = numpy.sum(fareas[:, 1])
-            solidity = total_areas / total_cvx_areas
+            solidity = old_div(total_areas, total_cvx_areas)
             # Connectivity
             sareas = fareas.shape[0]
-            conn = 1 - ((sareas - 1) / ((total_areas / 9) ** 0.5 + sareas))
+            conn = 1 - (old_div((sareas - 1), ((old_div(total_areas, 9)) ** 0.5 + sareas)))
             fragmentation += "%f," % (1 - solidity * conn)
         else:
             fragmentation += ","
@@ -147,8 +144,8 @@ def generate_dispersiveness(polygon, levels, workspace="in_memory", move_dir=0):
         if fareas.shape != (0,):
             max_rareas = rareas[numpy.argmax(rareas, 0)]
             # R = base_roundness * size_factor
-            R = numpy.mean(4 * max_rareas[:, 0] * math.pi / numpy.square(max_rareas[:, 1]) * (
-                    numpy.log(max_rareas[:, 0]) / numpy.log(max_rareas[:, 2])))
+            R = numpy.mean(old_div(4 * max_rareas[:, 0] * math.pi, numpy.square(max_rareas[:, 1]) * (
+                    old_div(numpy.log(max_rareas[:, 0]), numpy.log(max_rareas[:, 2])))))
             roundness += "%f," % (1 - R)
         else:
             roundness += ","
@@ -157,7 +154,7 @@ def generate_dispersiveness(polygon, levels, workspace="in_memory", move_dir=0):
         areas = numpy.array(l_displace)
         if areas.shape != (0,):
             total_areas = numpy.sum(areas[:, 0])
-            area_frac = areas[:, 0] / total_areas
+            area_frac = old_div(areas[:, 0], total_areas)
             dist_weight_e = areas[:, 1] * numpy.sin(numpy.radians(areas[:, 2])) / 1000.0  # Let's scale it to km, otherwise it will be too large
             dist_weight_n = areas[:, 1] * numpy.cos(numpy.radians(areas[:, 2])) / 1000.0
             displacements_e += "%f," % numpy.sum(area_frac * dist_weight_e)
@@ -170,35 +167,35 @@ def generate_dispersiveness(polygon, levels, workspace="in_memory", move_dir=0):
 
         # Now we we can do closure in old way
         if "closure" not in utils.skip_list:
-            closure_ring_km = [(0, 100), (100, 200), (200, 300), (300, 400), (400, 500)]
-            select3 = arcpy.Select_analysis(polygon, "E:\\select_temp_3_%d.shp" % pid, where_clause="dBZ=%d" % l)
+            closure_ring_km = [(0, 100), (100, 200), (200, 300), (300, 400), (400, 500), (0, 500)]
+            select3 = arcpy.Select_analysis(polygon, "in_memory/select_temp_3_%d" % pid, where_clause="dBZ=%d" % l)
             eye_lon, eye_lat = utils.projFunc(eye_x, eye_y, inverse=True)
             for s, e in closure_ring_km:
                 with RadiantLine(lon=eye_lon, lat=eye_lat, r_start=s, r_end=e) as radiant:
-                    arcpy.Intersect_analysis(in_features=["E:\\select_temp_3_%d.shp" % pid, radiant.temp_name],
-                                             out_feature_class="E:\\closure_temp_%d.shp" % pid, join_attributes="ALL", output_type="INPUT")
-                    with arcpy.da.SearchCursor("E:\\closure_temp_%d.shp" % pid, ["SHAPE@", "DEG"]) as q:
+                    arcpy.Intersect_analysis(in_features=["in_memory/select_temp_3_%d" % pid, radiant.temp_name],
+                                             out_feature_class="in_memory/closure_temp_%d" % pid, join_attributes="ALL", output_type="INPUT")
+                    with arcpy.da.SearchCursor("in_memory/closure_temp_%d" % pid, ["SHAPE@", "DEG"]) as q:
                         count = set()
                         for k in q:
                             count.add(k[1])
                         closure_str += "%.2f|" % (len(count) / 360.0)
-                # arcpy.Delete_management("E:\\select_temp.shp")
-                # arcpy.Delete_management("E:\\closure_temp.shp")
+                # arcpy.Delete_management("in_memory/select_temp.shp")
+                # arcpy.Delete_management("in_memory/closure_temp.shp")
             # Remove last "|"
             if closure_str.endswith("|"):
                 closure_str = closure_str[:-1]
             closure_str += ","
 
         if "extent" not in utils.skip_list:
-            select4 = arcpy.Select_analysis(polygon, "E:\\select_temp_4_%d.shp" % pid, where_clause="dBZ=%d" % l)
+            select4 = arcpy.Select_analysis(polygon, "in_memory/select_temp_4_%d.shp" % pid, where_clause="dBZ=%d" % l)
             eye_lon, eye_lat = utils.projFunc(eye_x, eye_y, inverse=True)
             extent_mv = {"1": [0] * 90, "2": [0] * 90, "3": [0] * 90, "4": [0] * 90}
             extent_nat = {"1": [0] * 90, "2": [0] * 90, "3": [0] * 90, "4": [0] * 90}
             with RadiantLine(lon=eye_lon, lat=eye_lat, r_start=0, r_end=600, direction=int(move_dir)) as radiant:
-                arcpy.Intersect_analysis(in_features=["E:\\select_temp_4_%d.shp" % pid, radiant.temp_name],
-                                         out_feature_class="E:\\extent_temp_%d.shp" % pid, join_attributes="ALL", output_type="INPUT")
+                arcpy.Intersect_analysis(in_features=["in_memory/select_temp_4_%d.shp" % pid, radiant.temp_name],
+                                         out_feature_class="in_memory/extent_temp_%d.shp" % pid, join_attributes="ALL", output_type="INPUT")
                 # sr = arcpy.Describe(polygon).spatialReference
-                with arcpy.da.SearchCursor("E:\\extent_temp_%d.shp" % pid, ["SHAPE@", "QUAD", "MOVE", "DEG", "MV_DEG"]) as q:
+                with arcpy.da.SearchCursor("in_memory/extent_temp_%d.shp" % pid, ["SHAPE@", "QUAD", "MOVE", "DEG", "MV_DEG"]) as q:
                     for k in q:
                         quad = k[1]
                         move = k[2]
@@ -215,30 +212,21 @@ def generate_dispersiveness(polygon, levels, workspace="in_memory", move_dir=0):
             extent_mv_str += ","
             extent_str += ","
 
+        # Get largest polygons and copy their attributes
+        all_fields = [p.name for p in arcpy.ListFields(polygon)][2:]  # The first is always id, second is always shape
+        area_index = all_fields.index("AREA")
+        max_area = 0
+        attr = ["-1"] * len(all_fields)
+        with arcpy.da.SearchCursor(polygon, all_fields, where_clause="dBZ=%d" % l) as cur:
+            for row in cur:
+                if row[area_index] > max_area:
+                    max_area = area_index
+                    attr = list(row)   # row is a tuple
 
+    # let us return field name first, then field values
 
-        # # Get largest 3 polygons
-        # if False:
-        # # if _areas_list:
-        #     if len(_areas_list) < 3:
-        #         _area = min(_areas_list)
-        #     else:
-        #         _area = sorted(_areas_list)[-3]
-        #     # Second pass, get larget N polygons
-        #     delete_list = ["in_memory\\L3", "in_memory\\BOX"]
-        #     select3 = arcpy.Select_analysis(polygon, delete_list[0], where_clause="AREA>=%f" % _area)
-        #     # Get bounding box for entire area
-        #     arcpy.MinimumBoundingGeometry_management(delete_list[0], delete_list[1], "RECTANGLE_BY_AREA",
-        #                                              mbg_fields_option="MBG_FIELDS", group_option="ALL")
-        #     with arcpy.da.SearchCursor(delete_list[1], ["MBG_Width", "MBG_Length"]) as cur2:
-        #         for r in cur2:
-        #             adv_elongation += "%f," % (row[1] / row[0])
-        #
-        #     map(arcpy.Delete_management, delete_list)
-        # else:
-        #     adv_elongation += ","
-
-    return dispersiveness, closure_str, fragmentation, roundness, displacements_n, displacements_e, extent_mv_str, extent_str
+    return (["dispersiveness", "closure", "frag", "asymmetry", "dis_e", "dis_n", "extent_move", "extent_geom"] + all_fields
+            [dispersiveness, closure_str, fragmentation, roundness, displacements_n, displacements_e, extent_mv_str, extent_str] + attr)
 
 
 def add_track_position(polygon, timestamp, track_dict):
@@ -276,7 +264,7 @@ def add_track_position(polygon, timestamp, track_dict):
             row[10] = int(move)
             cur.updateRow(row)
 
-    print "%s: polygon distance to eye; convex hull distance to eye; closure" % polygon
+    print("%s: polygon distance to eye; convex hull distance to eye; closure" % polygon)
 
 
 def clean_fields(polygon):
@@ -284,7 +272,7 @@ def clean_fields(polygon):
     for field in F:
         if field.name.find("_1") != -1:
             arcpy.DeleteField_management(polygon, field.name)
-            print "%s: Field %s deleted" % (polygon, field.name)
+            print("%s: Field %s deleted" % (polygon, field.name))
     pass
 
 
@@ -295,7 +283,7 @@ def execute(input_feat, output_feat, track_dict, date_format, levels=(20, 25, 30
     try:
         # Copy to destination
         arcpy.CopyFeatures_management(input_feat, output_feat)
-        print "Copying %s -> %s" % (input_feat, output_feat)
+        print("Copying %s -> %s" % (input_feat, output_feat))
         # Get timestamp
         q = os.path.basename(input_feat)
         timestamp = time.mktime(utils.smart_lookup_date(q, date_format).timetuple())
@@ -306,9 +294,9 @@ def execute(input_feat, output_feat, track_dict, date_format, levels=(20, 25, 30
         # Dispersivness and EVERYTHING
         move = track_dict[timestamp]["dir"]
         dispersive = generate_dispersiveness(output_feat, levels, move_dir=move)
-        print "OK", dispersive
+        print("OK", dispersive)
         return dispersive
-    except Exception, ex:
+    except Exception as ex:
         logging.exception(ex.message)
         return "Error"
 
@@ -320,7 +308,7 @@ def main(workspace, date_format="%Y%m%d_%H%M%S", track_pickle=None):
     utils.create_dirs([stage2])
 
     track_pickle = track_pickle or utils.track_pickle
-    track_dict = cPickle.load(open(track_pickle))
+    track_dict = pickle.load(open(track_pickle))
 
     error_list = []
 
@@ -338,5 +326,5 @@ def main(workspace, date_format="%Y%m%d_%H%M%S", track_pickle=None):
 
     output_file.close()
 
-    print "Done"
-    print "Errors:", error_list
+    print("Done")
+    print("Errors:", error_list)

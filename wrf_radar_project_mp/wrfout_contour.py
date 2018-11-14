@@ -1,4 +1,6 @@
-﻿__author__ = 'jtang8756'
+﻿from __future__ import print_function
+from builtins import range
+__author__ = 'jtang8756'
 
 # Prepareation
 import numpy
@@ -41,7 +43,7 @@ def execute(in_netcdf, out_feat, levels=(20, 25, 30, 35, 40, 45), mask=None):
 
         lon_l, lat_l = utils.projFunc(lon_l, lat_l)
 
-        print fn_csv
+        print(fn_csv)
         if not os.path.exists(fn_csv):
             f_csv = open(fn_csv, "w")
             f_csv.write("Id,X,Y,Reflect\n")
@@ -55,15 +57,15 @@ def execute(in_netcdf, out_feat, levels=(20, 25, 30, 35, 40, 45), mask=None):
                 f_csv.write("%d,%f,%f,%f\n" % (i, lon, lat, refl))
 
             f_csv.close()
-            print "NC to CSV:", fn_csv
+            print("NC to CSV:", fn_csv)
         else:
-            print "Have CSV:", fn_csv
+            print("Have CSV:", fn_csv)
 
         reflect = arcpy.CreateUniqueName(arcpy.ValidateTableName("reflect.shp"), workspace)
         arcpy.MakeXYEventLayer_management(fn_csv, 'X', 'Y', reflect, utils.spatialRef, "Reflect")
         arcpy.PointToRaster_conversion(reflect, "Reflect", layer1, cellsize=utils.resolution)
         arcpy.DefineProjection_management(layer1, utils.spatialRef)
-        print "CSV to Rsater:", layer1
+        print("CSV to Rsater:", layer1)
 
     # Apply mask on if provided
     #if mask is not None:
@@ -74,9 +76,9 @@ def execute(in_netcdf, out_feat, levels=(20, 25, 30, 35, 40, 45), mask=None):
     # l21 = arcpy.sa.Con(layer1, layer1, 0, "VALUE >= 10")
     l22 = arcpy.sa.Con(arcpy.sa.IsNull(layer1), 0, layer1)
     arcpy.sa.ContourList(l22, out_feat, levels)
-    print "Raster to Contour:", out_feat
+    print("Raster to Contour:", out_feat)
 
 
 if __name__ == "__main__":
-    print "Do not run this directly"
+    print("Do not run this directly")
     exit(0)

@@ -1,5 +1,8 @@
 # coding=utf-8
 
+from __future__ import print_function
+from builtins import zip
+from builtins import range
 import os
 import sys
 import shutil
@@ -16,7 +19,7 @@ def create_dirs(dirs, discard=False):
         if p.find("in_memory") != -1:
             continue
         if discard:
-            print "Removing ", os.path.abspath(p)
+            print("Removing ", os.path.abspath(p))
             shutil.rmtree(p, ignore_errors=True)
         if not os.path.exists(p):
             os.makedirs(p)
@@ -50,7 +53,7 @@ def relocate(old_path, new_folder, new_ext=None):
 
 
 def list_folder_sorted_ext(folder=".", ext=None):
-    return sorted(filter(lambda p: ext is None or p.endswith(ext), os.listdir(folder)))
+    return sorted([p for p in os.listdir(folder) if ext is None or p.endswith(ext)])
 
 
 def smart_lookup_date(dstring, dformat, try_again=0):
@@ -59,7 +62,7 @@ def smart_lookup_date(dstring, dformat, try_again=0):
     dstring = a.sub("", dstring)
     dformat = a.sub("", dformat)
     dformat_len = len(datetime.datetime.strftime(datetime.datetime.now(), dformat))
-    print "date string length is", dformat_len
+    # print("date string length is", dformat_len)
     for i in range(len(dstring)):
         # End of search
         if i + dformat_len > len(dstring):
@@ -71,7 +74,7 @@ def smart_lookup_date(dstring, dformat, try_again=0):
             pass
         assert(isinstance(p_datetime, datetime.datetime))
         if 1950 < p_datetime.year < 2050:  # 100 year range should be long enough
-            print("Found datetime", p_datetime)
+            # print(("Found datetime", p_datetime))
             return p_datetime
     if try_again:
         return None
@@ -104,19 +107,19 @@ def __find_files_in_list_by_time(files, ref_time, dformat, mask_config=None, all
 def list_files_by_timestamp(basedir, timelist, dformat, file_ext=None, mask_config=None, allow_diff_sec=300):
     '''find a list of files closest to given timelist'''
     files = list_folder_sorted_ext(basedir, file_ext)
-    return zip(*[__find_files_in_list_by_time(files, t, dformat) for t in timelist])
+    return list(zip(*[__find_files_in_list_by_time(files, t, dformat) for t in timelist]))
 
 
 # configs
-case_year = "2007"
-case_name = "Humberto"
+case_year = "2004"
+case_name = "Jeanne"
 
-central_meridian = -95.621945
-standard_parallel_1 = 27.42722666666667
-standard_parallel_2 = 30.93889333333334
-latitude_of_origin = 29.18306
+central_meridian = -96.0
+standard_parallel_1 = 20.0
+standard_parallel_2 = 60.0
+latitude_of_origin = 40.0
 
-temp_folder = os.environ["TEMP"]
+temp_folder = os.environ.get("TEMP", "/tmp")
 ibtrac = os.path.join(sys.path[0], 'ibtracs_na_1995.csv')
 cnt_folder = "cnt"
 cnt_polygon_folder = "cnt_polygon"

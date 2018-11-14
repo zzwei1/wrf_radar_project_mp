@@ -1,3 +1,5 @@
+from __future__ import print_function
+from builtins import map
 import sys
 import os
 import datetime
@@ -49,8 +51,8 @@ radar_levels = [20, 40]
 
 def run_radar(skip_list, discard_existed):
     # Radar resolution = 30min, WRF resolution = 30min
-    analytical_time = map(pd.Timestamp.to_datetime,
-                          pd.date_range('2004-09-28 17:50:00', '2004-09-28 18:00:00', freq="10min"))
+    analytical_time = list(map(pd.Timestamp.to_datetime,
+                          pd.date_range('2004-09-28 17:50:00', '2004-09-28 18:00:00', freq="10min")))
     utils.working_mode = "radar"
     print(analytical_time)
     _, file_list = utils.list_files_by_timestamp(radar_base_folder,
@@ -80,11 +82,11 @@ def main(argv):
         "basic": 0,
         "closure": 0,
     }
-    skip_list = [k for k,v in skip_dict.iteritems() if v]
+    skip_list = [k for k,v in list(skip_dict.items()) if v]
     # If we do the skip, we cannot discard previous results
     if skip_list:
         discard_existed = False
-    print skip_list, discard_existed
+    print(skip_list, discard_existed)
     utils.skip_list = skip_list
     # So we run radar case
     case = -1

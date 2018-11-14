@@ -1,8 +1,11 @@
 #coding=utf-8
 
+from future import standard_library
+standard_library.install_aliases()
+from builtins import input
 import os
 import csv
-import cPickle
+import pickle
 
 import datetime
 import time
@@ -41,7 +44,7 @@ def main(input_csv_path, output_folder, date_format="refl_3_5km_%Y_%m_%d_%H_%M")
     pp(interp_track_dict)
 
     with open(os.path.join(output_folder, "Isabel.pickle"), "w") as track_dump:
-        cPickle.dump(interp_track_dict, track_dump)
+        pickle.dump(interp_track_dict, track_dump)
 
 
 # Main
@@ -49,7 +52,7 @@ if __name__ == "__main__":
     pwd = os.path.abspath(".")
     main(os.path.join(os.path.dirname(pwd), "newtrack_d03_30min.csv"), pwd)
 
-    raw_input("Done")
+    eval(input("Done"))
 
 
 

@@ -1,8 +1,11 @@
 #coding=utf-8
 
+from __future__ import print_function
+from future import standard_library
+standard_library.install_aliases()
 import os
 import csv
-import cPickle
+import pickle
 
 import datetime
 import time
@@ -47,11 +50,11 @@ def main(input_csv_path, work_base_folder, input_data_folder, date_format="%Y%m%
     proj = pyproj.Proj(utils.projStr)
     csvfile = open(input_csv_path) 
     reader = csv.DictReader(csvfile)
-    track_list = filter(lambda p: p is not None, [date_to_timestamp(row) for row in reader])
+    track_list = [p for p in [date_to_timestamp(row) for row in reader] if p is not None]
     csvfile.close()
     
     track_array = numpy.array(track_list)
-    print track_array
+    print(track_array)
     T = track_array[:,0]
     X = track_array[:,1]
     Y = track_array[:,2]
@@ -64,20 +67,25 @@ def main(input_csv_path, work_base_folder, input_data_folder, date_format="%Y%m%
     date_obj = [utils.smart_lookup_date(p, date_format) for p in date_str]
     timestamps = [time.mktime(p.timetuple()) for p in date_obj]
     interp_track_dict = {}
-    for p in timestamps:
-        interp_track_dict[p] = {}
-        interp_track_dict[p]['pos'] = proj(fx(p), fy(p))
-        vx = derivative(fx, p)
-        vy = derivative(fy, p)
-        interp_track_dict[p]['dir'] = int(math.degrees(math.atan2(vy, vx)))
+    for i in range(len(timestamps)):
+        p = timestamps[i]
+        pp(date_str[i])
+        try:
+            interp_track_dict[p] = {}
+            interp_track_dict[p]['pos'] = proj(fx(p), fy(p))
+            vx = derivative(fx, p)
+            vy = derivative(fy, p)
+            interp_track_dict[p]['dir'] = int(math.degrees(math.atan2(vy, vx)))
+        except:
+            pp("ERROR")
     pp(interp_track_dict)
     
-    with open(os.path.join(work_base_folder, utils.case_name + ".pickle"), "w") as track_dump:
-        cPickle.dump(interp_track_dict, track_dump)
+    with open(os.path.join(work_base_folder, utils.case_name + ".pickle"), "wb") as track_dump:
+        pickle.dump(interp_track_dict, track_dump)
         
             
 if __name__ == "__main__":
-    main(utils.ibtrac, r"D:\H07\3_5", r"D:\H07\3_5", "%Y%m%d_%H%M%S")
+    main(utils.ibtrac, "/home/miaoji/Documents/J04", "/home/miaoji/Documents/J04", "%Y%m%d_%H%M%S")
         
     
     
