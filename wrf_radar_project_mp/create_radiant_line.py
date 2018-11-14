@@ -60,7 +60,7 @@ class RadiantLine(object):
             arcpy.Delete_management(self.temp_name)
 
     def copy(self, output_name):
-        arcpy.Copy_manE:\\agement(self.temp_name, output_name)
+        arcpy.Copy_management(self.temp_name, output_name)
 
 
 if __name__ == "__main__":

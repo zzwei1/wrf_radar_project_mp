@@ -88,7 +88,11 @@ def execute(input_feat, output_feat):
         stats_table = arcpy.CreateUniqueName("temp_statistic", "in_memory")
         arcpy.Statistics_analysis(output_feat, out_table=stats_table, statistics_fields="AREA SUM", case_field="dbZ")
         arcpy.JoinField_management(output_feat, "dBZ", stats_table, "dBZ", fields=["SUM_AREA"])
+        
+        # Free space
         arcpy.Delete_management(stats_table)
+        arcpy.Delete_management(box_shp)
+        arcpy.Delete_management(cvx_shp)
                                          
         print("OK")
     except Exception as ex:

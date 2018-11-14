@@ -46,7 +46,7 @@ def execute(in_feature, out_feature, contour_level=None):
             # temp_file.append(out2_1)
             temp_file.append(out2)
             
-            out3 = arcpy.CreateUniqueName(out2, workspace)
+            # out3 = arcpy.CreateUniqueName(out2, workspace)
             # Remove some points
             arcpy.Generalize_edit(out2, "200 Meters")
             # Then do a smooth
@@ -56,7 +56,7 @@ def execute(in_feature, out_feature, contour_level=None):
             # arcpy.Copy_management(out2, out3)
             print("Copy and smooth %s -> %s" % (out2, out3))              
             calc_field(out3, {"AREA1":  "!shape.area!", "dbZ": "%d" % value }, True)
-            # temp_file.append(out3)
+            temp_file.append(out3)
             
             out4 = arcpy.CreateUniqueName(out3, workspace)
             arcpy.Select_analysis(out3, out4, where_clause="AREA1>30000000")

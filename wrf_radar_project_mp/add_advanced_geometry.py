@@ -50,7 +50,7 @@ def line_dist(pt1, pt2):
 
 
 def generate_dispersiveness(polygon, levels, workspace="in_memory", move_dir=0):
-    arcpy.env.workspace = workspace
+    arcpy.env.workspace = "in_memory"
     dispersiveness = ""
     closure_str = ""
     fragmentation = ""
@@ -60,6 +60,8 @@ def generate_dispersiveness(polygon, levels, workspace="in_memory", move_dir=0):
     displacements_n = ""
     extent_str = ""
     extent_mv_str = ""
+    large_str = ""
+    large_attr_list = []
     dispersive_search_radius = (100e3, 150e3, 200e3, 250e3, 500e3)
 
     for l in levels:
@@ -187,15 +189,15 @@ def generate_dispersiveness(polygon, levels, workspace="in_memory", move_dir=0):
             closure_str += ","
 
         if "extent" not in utils.skip_list:
-            select4 = arcpy.Select_analysis(polygon, "in_memory/select_temp_4_%d.shp" % pid, where_clause="dBZ=%d" % l)
+            select4 = arcpy.Select_analysis(polygon, "in_memory/select_temp_4_%d" % pid, where_clause="dBZ=%d" % l)
             eye_lon, eye_lat = utils.projFunc(eye_x, eye_y, inverse=True)
             extent_mv = {"1": [0] * 90, "2": [0] * 90, "3": [0] * 90, "4": [0] * 90}
             extent_nat = {"1": [0] * 90, "2": [0] * 90, "3": [0] * 90, "4": [0] * 90}
             with RadiantLine(lon=eye_lon, lat=eye_lat, r_start=0, r_end=600, direction=int(move_dir)) as radiant:
-                arcpy.Intersect_analysis(in_features=["in_memory/select_temp_4_%d.shp" % pid, radiant.temp_name],
-                                         out_feature_class="in_memory/extent_temp_%d.shp" % pid, join_attributes="ALL", output_type="INPUT")
+                arcpy.Intersect_analysis(in_features=["in_memory/select_temp_4_%d" % pid, radiant.temp_name],
+                                         out_feature_class="in_memory/extent_temp_%d" % pid, join_attributes="ALL", output_type="INPUT")
                 # sr = arcpy.Describe(polygon).spatialReference
-                with arcpy.da.SearchCursor("in_memory/extent_temp_%d.shp" % pid, ["SHAPE@", "QUAD", "MOVE", "DEG", "MV_DEG"]) as q:
+                with arcpy.da.SearchCursor("in_memory/extent_temp_%d" % pid, ["SHAPE@", "QUAD", "MOVE", "DEG", "MV_DEG"]) as q:
                     for k in q:
                         quad = k[1]
                         move = k[2]
@@ -216,17 +218,22 @@ def generate_dispersiveness(polygon, levels, workspace="in_memory", move_dir=0):
         all_fields = [p.name for p in arcpy.ListFields(polygon)][2:]  # The first is always id, second is always shape
         area_index = all_fields.index("AREA")
         max_area = 0
-        attr = ["-1"] * len(all_fields)
         with arcpy.da.SearchCursor(polygon, all_fields, where_clause="dBZ=%d" % l) as cur:
             for row in cur:
                 if row[area_index] > max_area:
                     max_area = area_index
-                    attr = list(row)   # row is a tuple
+                    attr = row   # row is a tuple
+        large_attr_list.append(row)
+        
+    
+    # We need again process large_attr_list to conver to csv strings
+    large_str = [",".join(map(str, t)) for t in zip(*large_attr_list)]
+
+    arcpy.Delete_management("in_memory")
 
     # let us return field name first, then field values
-
-    return (["dispersiveness", "closure", "frag", "asymmetry", "dis_e", "dis_n", "extent_move", "extent_geom"] + all_fields
-            [dispersiveness, closure_str, fragmentation, roundness, displacements_n, displacements_e, extent_mv_str, extent_str] + attr)
+    return (["dispersiveness", "closure", "frag", "asymmetry", "dis_e", "dis_n", "extent_move", "extent_geom"] + all_fields, 
+            [dispersiveness, closure_str, fragmentation, roundness, displacements_n, displacements_e, extent_mv_str, extent_str] + large_str)
 
 
 def add_track_position(polygon, timestamp, track_dict):

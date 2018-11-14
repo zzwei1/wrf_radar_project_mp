@@ -25,6 +25,8 @@ import itertools
 import pyproj
 import arcpy
 
+import gc
+
 
 def call_func(func_args_tuple):
     __func = func_args_tuple[0]
@@ -90,6 +92,7 @@ def start_mp(work_base_folder,
             p(*q)
     else:
         pprint("Contour skipped")
+    arcpy.Delete_management("in_memory")
 
     # Fill contour, we need refresh filelist in cnt_folder
     cnt_input = utils.list_folder_sorted_ext(cnt_folder, ".shp")
@@ -97,10 +100,11 @@ def start_mp(work_base_folder,
     cnt_output_polygon_path = [utils.relocate(p, cnt_polygon_folder, ".shp").replace("-", "_") for p in cnt_input]
     levels_arg = [levels] * len(cnt_input_path)
     if 'smooth' not in skip_list:
-        for (p, q) in create_func_args_tuple(contour_polygon_filling.execute, cnt_input_path, cnt_output_polygon_path, levels_arg)]
+        for (p, q) in create_func_args_tuple(contour_polygon_filling.execute, cnt_input_path, cnt_output_polygon_path, levels_arg):
             p(*q)
     else:
         pprint("Smoothing and polygonize skipped")
+    arcpy.Delete_management("in_memory")
 
     # Get basic metric
     bsm_input = utils.list_folder_sorted_ext(cnt_polygon_folder, ".shp")
@@ -108,10 +112,11 @@ def start_mp(work_base_folder,
     bsm_output_path = [utils.relocate(p, stage1_folder, ".shp") for p in bsm_input]
     levels_arg = [levels] * len(bsm_input_path)
     if 'basic' not in skip_list:
-        for (p, q) in create_func_args_tuple(add_basic_geometry.execute, bsm_input_path, bsm_output_path)]
+        for (p, q) in create_func_args_tuple(add_basic_geometry.execute, bsm_input_path, bsm_output_path):
             p(*q)
     else:
         pprint("Basic shape metrics skipped")
+    arcpy.Delete_management("in_memory")
 
     # We will automatically interpolate track for radar.    
     # if working_mode != "wrf":
@@ -123,24 +128,31 @@ def start_mp(work_base_folder,
     asm_output_path = [utils.relocate(p, stage2_folder, ".shp") for p in asm_input]
     # It is a little bit complex for advanced shape metrics
     track_pickle = os.path.join(work_base_folder, "%s.pickle" % utils.case_name)
-    track_dict = pickle.load(open(track_pickle))
+    track_dict = pickle.load(open(track_pickle, "rb"))
     l = len(asm_input)
     date_format = stage2_datetime_format
     levels_arg = [levels] * l
-    func_stub = create_func_args_tuple(add_advanced_geometry.execute, asm_input_path, asm_output_path, [track_dict] * l,
-                                       [date_format] * l, levels_arg)
+    func_stub = create_func_args_tuple(add_advanced_geometry.execute, asm_input_path, asm_output_path, [track_dict] * l, [date_format] * l, levels_arg)
     # if not __debug__:
     #     dispersiveness = pool.map(call_func, func_stub)
     # else:
     # No matter how fast from beginning, this step must be single-threaded, because return may hang.
-    dispersiveness = []
-    for p, q in func_stub
-        r = p(*q)
-        dispersiveness.append(r[1])
+    result_pickle = os.path.join(work_base_folder, "advanced.pickle")
+    if 'adv' not in skip_list:
+        dispersiveness = []
+        for p, q in func_stub:
+            r = p(*q)
+            dispersiveness.append(r[1])
+            variable_strs = r[0]
+            gc.collect()
+        pickle.dump((variable_strs, dispersiveness), open(result_pickle, "wb"))
+    else:
+        print("Advanced calculation skipped, load computed data from pickle")
+        variable_strs, dispersiveness = pickle.load(open(result_pickle, "rb"))
 
     level_strs = list(map(str, levels))
     # "dispersiveness, closure_str, fragmentation, roundness, displacements_n, displacements_e"
-    variable_strs = ["dispersiveness", "closure", "frag", "asymmetry", "dis_e", "dis_n", "extent_move", "extent_geom"]
+    # variable_strs = ["dispersiveness", "closure", "frag", "asymmetry", "dis_e", "dis_n", "extent_move", "extent_geom"]
     header_list = list(map('-'.join, list(itertools.product(variable_strs, level_strs))))
     with open(os.path.join(work_base_folder, "dispersiveness_%d.csv" % os.getpid()), "w") as dispersive_output:
         dispersive_output.write("time_string," + ",".join(header_list) + ",comment\n")
