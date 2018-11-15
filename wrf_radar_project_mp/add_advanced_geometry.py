@@ -227,7 +227,7 @@ def generate_dispersiveness(polygon, levels, workspace="in_memory", move_dir=0):
         
     
     # We need again process large_attr_list to conver to csv strings
-    large_str = [",".join(map(str, t)) for t in zip(*large_attr_list)]
+    large_str = [",".join(map(str, t)) + "," for t in zip(*large_attr_list)]
 
     arcpy.Delete_management("in_memory")
 

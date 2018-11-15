@@ -16,7 +16,7 @@ arcpy.CheckOutExtension("spatial")
 arcpy.env.overwriteOutput = True
 arcpy.env.workspace = "in_memory"
 
-radar_base_folder = r'/home/miaoji/Documents/J04'
+radar_base_folder = r'/home/miaoji/Documents/H07'
 
 # wrf_base_folder = r'C:\Users\sugar\Desktop\wrf3.6.1'
 wrf_base_folder = r'D:\isabel_wrf_restart\windfield'

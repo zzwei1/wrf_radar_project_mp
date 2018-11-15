@@ -112,7 +112,7 @@ def list_files_by_timestamp(basedir, timelist, dformat, file_ext=None, mask_conf
 
 # configs
 case_year = "2004"
-case_name = "Jeanne"
+case_name = "Humberto"
 
 central_meridian = -96.0
 standard_parallel_1 = 20.0
