@@ -16,42 +16,17 @@ arcpy.CheckOutExtension("spatial")
 arcpy.env.overwriteOutput = True
 arcpy.env.workspace = "in_memory"
 
-radar_base_folder = r'/home/miaoji/Documents/H07'
-
-# wrf_base_folder = r'C:\Users\sugar\Desktop\wrf3.6.1'
-wrf_base_folder = r'D:\isabel_wrf_restart\windfield'
-
-wrf_schemes = [  # Biased cases
-    # 'ARWH_KainFritschCu_Morrison', #0
-    # 'ARWH_KainFritschCu_WSM6',
-    # 'ARWH_TiedtkeCu_Morrison',
-    # 'ARWH_TiedtkeCu_WSM6',
-    # # Unbiased cases
-    # 'ARWH_KainFritschCu_Morrison', #4
-    # 'ARWH_KainFritschCu_WDM6',
-    # 'ARWH_KainFritschCu_WSM6',
-    # 'ARWH_TiedtkeCu_Morrison',
-    # 'ARWH_TiedtkeCu_WDM6',
-    # 'ARWH_TiedtkeCu_WSM6', #9
-    # 'wrf_gary',
-    # Wind cases
-    'KFS',
-    'TS',
-    'zTS'
-]
-wrf_postfix = ''
-
-# masks = [(datetime.datetime(2003, 9, 18, 0, 0, 0), datetime.datetime(2003, 9, 18, 23, 59, 59),
-#          r'E:\wrf3.6.1\Mask\mask1.shp'),
-#         (datetime.datetime(2003, 9, 19, 0, 0, 0), datetime.datetime(2003, 9, 19, 23, 59, 59),
-#          r'E:\wrf3.6.1\Mask\mask2.shp')]
-
-radar_levels = [20, 40]
+radar_base_folder = utils.radar_base_folder
+wrf_base_folder = utils.wrf_base_folder
+wrf_schemes = utils.wrf_schemes
+wrf_postfix = utils.wrf_postfix
+# masks = utils.masks
+radar_levels = utils.radar_levels
 
 
 def run_radar(skip_list, discard_existed):
     # Radar resolution = 30min, WRF resolution = 30min
-    analytical_time = list(map(pd.to_datetime, pd.date_range('2007-09-12 22:20:00', '2007-09-14 11:55:00', freq="10min")))
+    analytical_time = list(map(pd.to_datetime, pd.date_range('2004-09-26 00:00:00', '2004-09-28 11:55:00', freq="10min")))
     utils.working_mode = "radar"
     pp(analytical_time)
     _, file_list = utils.list_files_by_timestamp(radar_base_folder,
@@ -81,8 +56,8 @@ def main(argv):
         "basic": 1,
         "adv": 0,
         "closure": 0,
-
     }
+
     skip_list = [k for k,v in list(skip_dict.items()) if v]
     # If we do the skip, we cannot discard previous results
     if skip_list:
@@ -90,23 +65,20 @@ def main(argv):
     print(skip_list, discard_existed)
     utils.skip_list = skip_list
     # So we run radar case
-    case = -1
-    try:
-        case = int(argv[1])
-    except IndexError:
-        pass
-    if case < 0:
+    case = 0
+    if utils.mode == 'radar':
+        print("Running in radar mode, case number is not used at all")
         run_radar(skip_list, discard_existed)
+        case = -1
     else:
-        run_wrf(case, skip_list, discard_existed)
-
-    search_radius = 500e3
-    try:
-        search_radius = int(argv[2]) * 1000
-    except (IndexError, ValueError):
-        pass
-    utils.search_radius = search_radius
-
+        try:
+            case = int(argv[2])
+            if case < 0:
+                raise ValueError("Case number must >= 0")
+            run_wrf(case, skip_list, discard_existed)
+        except Exception as e:
+            print("You must provide a valid case number in WRF mode")
+            
 
 if __name__ == "__main__":
     main(sys.argv)

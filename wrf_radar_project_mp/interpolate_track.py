@@ -85,7 +85,7 @@ def main(input_csv_path, work_base_folder, input_data_folder, date_format="%Y%m%
         
             
 if __name__ == "__main__":
-    main(utils.ibtrac, "/home/miaoji/Documents/J04", "/home/miaoji/Documents/J04", "%Y%m%d_%H%M%S")
+    main(utils.ibtrac, utils.radar_base_folder, utils.radar_base_folder, "%Y%m%d_%H%M%S")
         
     
     

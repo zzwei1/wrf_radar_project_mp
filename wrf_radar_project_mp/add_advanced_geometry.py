@@ -169,7 +169,7 @@ def generate_dispersiveness(polygon, levels, workspace="in_memory", move_dir=0):
 
         # Now we we can do closure in old way
         if "closure" not in utils.skip_list:
-            closure_ring_km = [(0, 100), (100, 200), (200, 300), (300, 400), (400, 500), (0, 500)]
+            closure_ring_km = [(25, 100), (100, 200), (200, 300), (300, 400), (400, 500), (25, 500)]
             select3 = arcpy.Select_analysis(polygon, "in_memory/select_temp_3_%d" % pid, where_clause="dBZ=%d" % l)
             eye_lon, eye_lat = utils.projFunc(eye_x, eye_y, inverse=True)
             for s, e in closure_ring_km:

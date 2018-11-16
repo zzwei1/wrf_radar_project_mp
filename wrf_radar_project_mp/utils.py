@@ -28,15 +28,15 @@ def create_dirs(dirs, discard=False):
 
 def relocate(old_path, new_folder, new_ext=None):
     """relocate file at ```old_path``` to ```new_folder``` and change its extension to ```new_ext```
-    
-    Parameters 
+
+    Parameters
     -----------------
     old_path: string
         old file path
 
-    new_folder: string 
+    new_folder: string
         the folder new file will be stored
-        
+
     new_ext: string
         the extension of new file will be replaced by ````new_ext````
     """
@@ -110,28 +110,32 @@ def list_files_by_timestamp(basedir, timelist, dformat, file_ext=None, mask_conf
     return list(zip(*[__find_files_in_list_by_time(files, t, dformat) for t in timelist]))
 
 
-# configs
-case_year = "2004"
-case_name = "Humberto"
+# default configs
+#case_year = "2004"
+#case_name = "Jeanne"
 
-central_meridian = -96.0
-standard_parallel_1 = 20.0
-standard_parallel_2 = 60.0
-latitude_of_origin = 40.0
+#central_meridian = -96.0
+#standard_parallel_1 = 20.0
+#standard_parallel_2 = 60.0
+#latitude_of_origin = 40.0
 
-temp_folder = os.environ.get("TEMP", "/tmp")
-ibtrac = os.path.join(sys.path[0], 'ibtracs_na_1995.csv')
-cnt_folder = "cnt"
-cnt_polygon_folder = "cnt_polygon"
-stage1_folder = "basic_metric"
-stage2_folder = "adv_metric"
-projStr = "+proj=lcc +lat_1=%f +lat_2=%f +lat_0=%f +lon_0=%f +x_0=0 +y_0=0 +ellps=GRS80 +datum=NAD83 +units=m +no_defs" % (
-    standard_parallel_1, standard_parallel_2, latitude_of_origin, central_meridian)
-projFunc = pyproj.Proj(projStr)
-spatialRef = ('PROJCS["North_America_Lambert_Conformal_Conic",GEOGCS["GCS_North_American_1983",DATUM["D_North_American_1983",SPHEROID["GRS_1980",6378137.0,298.257222101]],' +
-              'PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433]],PROJECTION["Lambert_Conformal_Conic"],PARAMETER["False_Easting",0.0],PARAMETER["False_Northing",0.0],' +
-              'PARAMETER["Central_Meridian",%f],PARAMETER["Standard_Parallel_1",%f],PARAMETER["Standard_Parallel_2",%f],PARAMETER["Latitude_Of_Origin",%f],UNIT["Meter",1.0],' +
-              'AUTHORITY["ESRI",102009]]') % (central_meridian, standard_parallel_1, standard_parallel_2, latitude_of_origin)
+#temp_folder = os.environ.get("TEMP", "/tmp")
+#ibtrac = os.path.join(sys.path[0], 'ibtracs_na_1995.csv')
+#cnt_folder = "cnt"
+#cnt_polygon_folder = "cnt_polygon"
+#stage1_folder = "basic_metric"
+#stage2_folder = "adv_metric"
+#projStr = "+proj=lcc +lat_1=%f +lat_2=%f +lat_0=%f +lon_0=%f +x_0=0 +y_0=0 +ellps=GRS80 +datum=NAD83 +units=m +no_defs" % (
+    #standard_parallel_1, standard_parallel_2, latitude_of_origin, central_meridian)
+#projFunc = pyproj.Proj(projStr)
+#spatialRef = ('PROJCS["North_America_Lambert_Conformal_Conic",GEOGCS["GCS_North_American_1983",DATUM["D_North_American_1983",SPHEROID["GRS_1980",6378137.0,298.257222101]],' +
+              #'PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433]],PROJECTION["Lambert_Conformal_Conic"],PARAMETER["False_Easting",0.0],PARAMETER["False_Northing",0.0],' +
+              #'PARAMETER["Central_Meridian",%f],PARAMETER["Standard_Parallel_1",%f],PARAMETER["Standard_Parallel_2",%f],PARAMETER["Latitude_Of_Origin",%f],UNIT["Meter",1.0],' +
+              #'AUTHORITY["ESRI",102009]]') % (central_meridian, standard_parallel_1, standard_parallel_2, latitude_of_origin)
 
-# This is used for WRF only.
-resolution = 30000
+config_path = os.path.join(os.path.dirname(__file__), sys.argv[1].lower()) + ".py"
+print("loading config from %s" % config_path)
+block = compile(open(config_path).read(), __name__, mode='exec')
+exec(block, globals(), locals())
+
+
