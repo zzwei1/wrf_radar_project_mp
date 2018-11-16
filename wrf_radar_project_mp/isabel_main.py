@@ -26,7 +26,7 @@ radar_levels = utils.radar_levels
 
 def run_radar(skip_list, discard_existed):
     # Radar resolution = 30min, WRF resolution = 30min
-    analytical_time = list(map(pd.to_datetime, pd.date_range('2004-09-26 00:00:00', '2004-09-28 11:55:00', freq="10min")))
+    analytical_time = list(map(pd.to_datetime, pd.date_range(utils.start_time_string, utils.end_time_string, freq=utils.freq_string)))
     utils.working_mode = "radar"
     pp(analytical_time)
     _, file_list = utils.list_files_by_timestamp(radar_base_folder,
