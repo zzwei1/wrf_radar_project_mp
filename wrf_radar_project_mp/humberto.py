@@ -9,7 +9,7 @@ end_time_string = '2007-09-14 11:55:00'
 freq_string = "10min"
 
 # configs
-case_year = "2004"
+case_year = "2007"
 case_name = "Humberto"
 
 central_meridian = -96.0

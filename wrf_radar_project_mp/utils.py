@@ -71,7 +71,7 @@ def smart_lookup_date(dstring, dformat, try_again=0):
         try:
             p_datetime = datetime.datetime.strptime(sub_dstring, dformat)
         except ValueError:
-            pass
+            continue
         assert(isinstance(p_datetime, datetime.datetime))
         if 1950 < p_datetime.year < 2050:  # 100 year range should be long enough
             # print(("Found datetime", p_datetime))
@@ -81,7 +81,7 @@ def smart_lookup_date(dstring, dformat, try_again=0):
     # We didn't find a datetime at all!
     # Well let us try if we can use a shorter one without seconds
     else:
-        return smart_lookup_date(dformat.replace("%S", ""), dstring, 1)
+        return smart_lookup_date(dstring, dformat.replace("%S", ""), 1)
 
 
 def __find_files_in_list_by_time(files, ref_time, dformat, mask_config=None, allow_diff_sec=300):
