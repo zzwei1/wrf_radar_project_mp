@@ -56,7 +56,7 @@ def list_folder_sorted_ext(folder=".", ext=None):
     return sorted([p for p in os.listdir(folder) if ext is None or p.endswith(ext)])
 
 
-def smart_lookup_date(dstring, dformat, try_again=0):
+def smart_lookup_date(dstring, dformat, try_again=False):
     a = re.compile(r"[-_\s:\.]")
     # Let us trim string first.
     dstring = a.sub("", dstring)
@@ -74,14 +74,14 @@ def smart_lookup_date(dstring, dformat, try_again=0):
             continue
         assert(isinstance(p_datetime, datetime.datetime))
         if 1950 < p_datetime.year < 2050:  # 100 year range should be long enough
-            # print(("Found datetime", p_datetime))
+            print(("Found datetime", p_datetime))
             return p_datetime
     if try_again:
         return None
     # We didn't find a datetime at all!
     # Well let us try if we can use a shorter one without seconds
     else:
-        return smart_lookup_date(dstring, dformat.replace("%S", ""), 1)
+        return smart_lookup_date(dstring, dformat.replace("%S", ""), True)
 
 
 def __find_files_in_list_by_time(files, ref_time, dformat, mask_config=None, allow_diff_sec=300):

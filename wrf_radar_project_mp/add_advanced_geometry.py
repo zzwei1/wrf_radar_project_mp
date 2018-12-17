@@ -194,8 +194,7 @@ def generate_dispersiveness(polygon, levels, workspace="in_memory", move_dir=0):
             extent_mv = {"1": [0] * 90, "2": [0] * 90, "3": [0] * 90, "4": [0] * 90}
             extent_nat = {"1": [0] * 90, "2": [0] * 90, "3": [0] * 90, "4": [0] * 90}
             with RadiantLine(lon=eye_lon, lat=eye_lat, r_start=0, r_end=600, direction=int(move_dir)) as radiant:
-                # NOTE: if we put radiant file at beginning, then we will use aeqd as projection, it should be absolutely accurate!
-                arcpy.Intersect_analysis(in_features=[radiant.temp_name, "in_memory/select_temp_4_%d" % pid],
+                arcpy.Intersect_analysis(in_features=["in_memory/select_temp_4_%d" % pid, radiant.temp_name],
                                          out_feature_class="in_memory/extent_temp_%d" % pid, join_attributes="ALL", output_type="INPUT")
                 # sr = arcpy.Describe(polygon).spatialReference
                 with arcpy.da.SearchCursor("in_memory/extent_temp_%d" % pid, ["SHAPE@", "QUAD", "MOVE", "DEG", "MV_DEG"]) as q:
@@ -207,8 +206,7 @@ def generate_dispersiveness(polygon, levels, workspace="in_memory", move_dir=0):
                         mv_deg = int(k[4]) % 90
                         for part in geom.getPart():
                             for pt in part:
-                                # Because we use aeqd, then eye should be always at center!
-                                dist = abs((pt.X + pt.Y * 1j)) / 1000.0
+                                dist = abs((pt.X + pt.Y * 1j) - (eye_x + eye_y * 1j)) / 1000.0
                                 extent_mv[move][mv_deg] = max(extent_mv[move][mv_deg], dist)
                                 extent_nat[quad][deg] = max(extent_nat[quad][deg], dist)
                 extent_mv_str += "%.2f|%.2f|%.2f|%.2f" % (sum(extent_mv["1"]) / 90.0, sum(extent_mv["2"]) / 90.0, sum(extent_mv["3"]) / 90.0, sum(extent_mv["4"]) / 90.0)

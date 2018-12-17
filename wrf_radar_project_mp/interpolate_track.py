@@ -63,15 +63,16 @@ def main(input_csv_path, work_base_folder, input_data_folder, date_format="%Y%m%
     fy = interp1d(T, Y, kind='cubic')
 
     # List files
-    date_str = utils.list_folder_sorted_ext(input_data_folder, ".img")
+    date_str = utils.list_folder_sorted_ext(input_data_folder, "850.img")
     date_obj = [utils.smart_lookup_date(p, date_format) for p in date_str]
+    pp(date_obj)
     timestamps = [time.mktime(p.timetuple()) for p in date_obj]
     interp_track_dict = {}
     for i in range(len(timestamps)):
         p = timestamps[i]
-        pp(date_str[i])
         try:
             interp_track_dict[p] = {}
+            interp_track_dict[p]['lon_lat'] = (float(fx(p)), float(fy(p)))
             interp_track_dict[p]['pos'] = proj(fx(p), fy(p))
             vx = derivative(fx, p)
             vy = derivative(fy, p)
@@ -85,7 +86,10 @@ def main(input_csv_path, work_base_folder, input_data_folder, date_format="%Y%m%
         
             
 if __name__ == "__main__":
-    main(utils.ibtrac, utils.radar_base_folder, utils.radar_base_folder, "%Y%m%d_%H%M%S")
+    main(utils.ibtrac,
+         r"C:\Users\miaoji.HOME\Documents",
+         r"C:\Users\miaoji.HOME\Documents\SHUM\H07",
+         "%Y%m%d_%H%M%S")
         
     
     
