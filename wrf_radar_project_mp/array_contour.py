@@ -7,7 +7,7 @@ from utils import create_dirs, relocate
 
 import arcpy
 
-def execute(input_raster, output_feat, contour_levels=[15,20,25,30,35,40], mask=None):
+def execute(input_raster, output_feat, contour_levels=(20, 40), mask=None):
     arcpy.env.workspace = "in_memory" 
     arcpy.env.overwriteOutput = True    
     arcpy.env.outputCoordinateSystem=utils.spatialRef
@@ -19,6 +19,6 @@ def execute(input_raster, output_feat, contour_levels=[15,20,25,30,35,40], mask=
     else:    
         d2 = arcpy.sa.Con(d, d, 0, 'VALUE >= 10')
     d21 = arcpy.sa.Con(arcpy.sa.IsNull(d2), 0, d2)
-    d21.save(r"E:\scratch\T1.img")
+    # d21.save(r"E:\scratch\T1.img")
     arcpy.sa.ContourList(d21, output_feat, contour_levels)
 

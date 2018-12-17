@@ -1,6 +1,7 @@
 #coding=utf-8
 
 """This script calculate shape-metric those are NOT relavent to the coordinates of the eye"""
+from __future__ import print_function
 
 import os
 import sys
@@ -10,12 +11,12 @@ import arcpy
 
 def calc_field(feature, fields_dict, slient=False):
     F = [p.name for p in arcpy.ListFields(feature)]   
-    for k, v in fields_dict.iteritems():
+    for k, v in list(fields_dict.items()):
         if not k in F:
             arcpy.AddField_management(feature, k, "DOUBLE")
         arcpy.CalculateField_management(feature, k, v, "PYTHON")
         if not slient:
-            print "Calculate %s = %s in %s" % (k, v, feature)
+            print("Calculate %s = %s in %s" % (k, v, feature))
 
     
 def rename_field(feature, old_field, new_field):    
@@ -27,12 +28,12 @@ def add_metric_to_polygon_with_equation(polygon, shape_metric, suffix=""):
     """Calculate basic shape metrics"""
     S = shape_metric
     s = {}
-    for k,v in S.iteritems():
+    for k,v in list(S.items()):
         field_name = k if k.find("%s") == -1 else k % suffix
         field_name = field_name[:10]
         s[field_name] = v
     calc_field(polygon, s)
-    return s.keys()
+    return list(s.keys())
 
 
 def add_basic_geometry_attr(polygon, suffix=""):
@@ -87,11 +88,15 @@ def execute(input_feat, output_feat):
         stats_table = arcpy.CreateUniqueName("temp_statistic", "in_memory")
         arcpy.Statistics_analysis(output_feat, out_table=stats_table, statistics_fields="AREA SUM", case_field="dbZ")
         arcpy.JoinField_management(output_feat, "dBZ", stats_table, "dBZ", fields=["SUM_AREA"])
+        
+        # Free space
         arcpy.Delete_management(stats_table)
+        arcpy.Delete_management(box_shp)
+        arcpy.Delete_management(cvx_shp)
                                          
-        print "OK"
-    except Exception, ex:
-        print >> sys.stderr, ex.message
+        print("OK")
+    except Exception as ex:
+        print(ex.message, file=sys.stderr)
         return input_feat
 
 
@@ -115,7 +120,7 @@ def main(workspace=None):
         # Main geoprocessing routine
         execute(orig, q, arcpy.env.workspace)
         
-        print "OK"
+        print("OK")
         
     
     

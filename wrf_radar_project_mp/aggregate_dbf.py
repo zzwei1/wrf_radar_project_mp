@@ -1,5 +1,7 @@
 # coding=utf-8
 
+from builtins import filter
+from builtins import map
 import os
 import sys
 
@@ -18,10 +20,10 @@ def aggreate_dbf(dbf_list, headers, output_name, parent_dir=".", begin=0, end=-4
 
 
 def main():
-    dirs = filter(os.path.isdir, sorted(os.listdir(".")))
+    dirs = list(filter(os.path.isdir, sorted(os.listdir("."))))
     for d in dirs:
         files = os.listdir(d)    
-        dbf_list = filter(lambda p: p.endswith(".dbf"), files)
+        dbf_list = [p for p in files if p.endswith(".dbf")]
         f = dbf.Table(os.path.join(d, dbf_list[0]))
         f.open()
         headers = ['time'] + f.field_names

@@ -1,10 +1,15 @@
 #coding=utf-8
 """This script add dispersion field to existed TC cases"""
+from __future__ import division
+from __future__ import print_function
 
+from future import standard_library
+standard_library.install_aliases()
+from past.utils import old_div
 import os
 import datetime
 import time
-import cPickle
+import pickle
 import math
 
 import utils
@@ -19,7 +24,7 @@ arcpy.env.overwriteOutput = True
 
 pwd = utils.work_base_folder
 stage2 = os.path.join(pwd, utils.stage2_folder)
-track_dict = cPickle.load(open(utils.track_pickle))
+track_dict = pickle.load(open(utils.track_pickle))
 
 def generate_dispersiveness(polygon):
     dispersiveness = -999
@@ -27,10 +32,10 @@ def generate_dispersiveness(polygon):
     with arcpy.da.UpdateCursor(polygon, ["AREA_", "TO_EYE"]) as cur:
         areas = numpy.array([[row[0], row[1]] for row in cur])
         total_areas = numpy.sum(areas[:,0])
-        area_frac = areas[:,0] / total_areas
+        area_frac = old_div(areas[:,0], total_areas)
         dist_weight = areas[:,1] / 600000.0      
         dispersiveness = numpy.sum(area_frac * dist_weight)
-        print "Dispersiveness=%f" % dispersiveness
+        print("Dispersiveness=%f" % dispersiveness)
         
     return dispersiveness
 
@@ -49,13 +54,13 @@ def main():
             dispersive = generate_dispersiveness(f)              
             output_file.write("%s,%f\n" % (q, dispersive))
             
-        except Exception, ex:
-            print ex.message
+        except Exception as ex:
+            print(ex.message)
             error_list.append(q)
     
     output_file.close()        
-    print "Done"
-    print "Error:", error_list
+    print("Done")
+    print("Error:", error_list)
 
 if __name__ == "__main__":
     main()

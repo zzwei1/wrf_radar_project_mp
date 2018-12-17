@@ -1,15 +1,20 @@
 #coding=utf-8
 
+from __future__ import print_function
+from future import standard_library
+standard_library.install_aliases()
 import os
 import csv
-import cPickle
+import pickle
 
 import datetime
 import time
 from pprint import pprint as pp
 
 import numpy
+import math
 from scipy.interpolate import interp1d
+from scipy.misc import derivative
 
 import pyproj
 
@@ -30,8 +35,8 @@ def date_to_timestamp(row):
 
 
 def date_to_timestamp_ibtracs(row):
-    CASE_NAME = utils.case_name.upper();
-    if(row['Season'] != utils.case_year or row['Name'] != CASE_NAME):
+    case_name = utils.case_name.upper()
+    if row['Season'] != utils.case_year or row['Name'] != case_name:
         return None
     t_date, t_time = row['ISO_time'].split(' ')
     t_year, t_month, t_day = t_date.split('/')
@@ -45,32 +50,46 @@ def main(input_csv_path, work_base_folder, input_data_folder, date_format="%Y%m%
     proj = pyproj.Proj(utils.projStr)
     csvfile = open(input_csv_path) 
     reader = csv.DictReader(csvfile)
-    track_list = filter(lambda p: p is not None, [date_to_timestamp(row) for row in reader])
+    track_list = [p for p in [date_to_timestamp(row) for row in reader] if p is not None]
     csvfile.close()
     
     track_array = numpy.array(track_list)
-    print track_array
+    print(track_array)
     T = track_array[:,0]
     X = track_array[:,1]
     Y = track_array[:,2]
     
     fx = interp1d(T, X, kind='cubic')
     fy = interp1d(T, Y, kind='cubic')
-    
+
     # List files
-    date_str = utils.list_folder_sorted_ext(input_data_folder, ".img")
+    date_str = utils.list_folder_sorted_ext(input_data_folder, "850.img")
     date_obj = [utils.smart_lookup_date(p, date_format) for p in date_str]
+    pp(date_obj)
     timestamps = [time.mktime(p.timetuple()) for p in date_obj]
-    interp_track = [(p, proj(fx(p), fy(p))) for p in timestamps]
-    
-    interp_track_dict = dict(interp_track)
+    interp_track_dict = {}
+    for i in range(len(timestamps)):
+        p = timestamps[i]
+        try:
+            interp_track_dict[p] = {}
+            interp_track_dict[p]['lon_lat'] = (float(fx(p)), float(fy(p)))
+            interp_track_dict[p]['pos'] = proj(fx(p), fy(p))
+            vx = derivative(fx, p)
+            vy = derivative(fy, p)
+            interp_track_dict[p]['dir'] = int(math.degrees(math.atan2(vy, vx)))
+        except:
+            pp("ERROR")
     pp(interp_track_dict)
     
-    with open(os.path.join(work_base_folder, utils.case_name + ".pickle"), "w") as track_dump:
-        cPickle.dump(interp_track_dict, track_dump)
+    with open(os.path.join(work_base_folder, utils.case_name + ".pickle"), "wb") as track_dump:
+        pickle.dump(interp_track_dict, track_dump)
         
             
-            
+if __name__ == "__main__":
+    main(utils.ibtrac,
+         r"C:\Users\miaoji.HOME\Documents",
+         r"C:\Users\miaoji.HOME\Documents\SHUM\H07",
+         "%Y%m%d_%H%M%S")
         
     
     
