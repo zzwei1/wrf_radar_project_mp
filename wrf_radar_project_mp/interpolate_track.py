@@ -22,27 +22,27 @@ import utils
 
 
 
-def date_to_timestamp(row):
-    try:
-        year = int(row['Year'])
-        month = int(row['Month'])
-        day = int(row['Day'])
-        hour = int(row['Hour'])
-        row_date = datetime.datetime(year, month, day, hour, 0, 0)
-        return [time.mktime(row_date.timetuple()), float(row['Lon']), float(row['Lat'])]
-    except: 
-        return date_to_timestamp_ibtracs(row)
+#def date_to_timestamp(row):
+    #try:
+        #year = int(row['Year'])
+        #month = int(row['Month'])
+        #day = int(row['Day'])
+        #hour = int(row['Hour'])
+        #row_date = datetime.datetime(year, month, day, hour, 0, 0)
+        #return [time.mktime(row_date.timetuple()), float(row['Lon']), float(row['Lat'])]
+    #except: 
+        #return date_to_timestamp_ibtracs(row)
 
 
 def date_to_timestamp_ibtracs(row):
     case_name = utils.case_name.upper()
-    if row['Season'] != utils.case_year or row['Name'] != case_name:
+    if row['SEASON'] != utils.case_year or row['NAME'] != case_name:
         return None
-    t_date, t_time = row['ISO_time'].split(' ')
-    t_year, t_month, t_day = t_date.split('/')
-    t_hour, t_ = t_time.split(':')
+    t_date, t_time = row['ISO_TIME'].split(' ')
+    t_year, t_month, t_day = t_date.split('-')
+    t_hour, t_, t__ = t_time.split(':')
     return [time.mktime(datetime.datetime(int(t_year), int(t_month), int(t_day), int(t_hour), 0, 0).timetuple()), 
-            float(row['Longitude_for_mapping']), float(row['Latitude_for_mapping'])]
+            float(row['LON']), float(row['LAT'])]
     
 
 def main(input_csv_path, work_base_folder, input_data_folder, date_format="%Y%m%d_%H%M%S", str_start=0, str_end=15):
@@ -50,7 +50,7 @@ def main(input_csv_path, work_base_folder, input_data_folder, date_format="%Y%m%
     proj = pyproj.Proj(utils.projStr)
     csvfile = open(input_csv_path) 
     reader = csv.DictReader(csvfile)
-    track_list = [p for p in [date_to_timestamp(row) for row in reader] if p is not None]
+    track_list = [p for p in [date_to_timestamp_ibtracs(row) for row in reader] if p is not None]
     csvfile.close()
     
     track_array = numpy.array(track_list)
@@ -63,7 +63,7 @@ def main(input_csv_path, work_base_folder, input_data_folder, date_format="%Y%m%
     fy = interp1d(T, Y, kind='cubic')
 
     # List files
-    date_str = utils.list_folder_sorted_ext(input_data_folder, "850.img")
+    date_str = utils.list_folder_sorted_ext(input_data_folder, ".img")
     date_obj = [utils.smart_lookup_date(p, date_format) for p in date_str]
     pp(date_obj)
     timestamps = [time.mktime(p.timetuple()) for p in date_obj]
@@ -87,8 +87,8 @@ def main(input_csv_path, work_base_folder, input_data_folder, date_format="%Y%m%
             
 if __name__ == "__main__":
     main(utils.ibtrac,
-         r"C:\Users\miaoji.HOME\Documents",
-         r"C:\Users\miaoji.HOME\Documents\SHUM\H07",
+         utils.radar_base_folder,
+         utils.radar_base_folder,
          "%Y%m%d_%H%M%S")
         
     

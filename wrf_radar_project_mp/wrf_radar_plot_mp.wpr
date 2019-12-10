@@ -1,9 +1,15 @@
 #!wing
-#!version=6.0
+#!version=7.0
 ##################################################################
-# Wing IDE project file                                          #
+# Wing project file                                              #
 ##################################################################
 [project attributes]
+proj.directory-list = [{'dirloc': loc('.'),
+                        'excludes': (),
+                        'filter': u'*.py',
+                        'include_hidden': False,
+                        'recursive': True,
+                        'watch_for_changes': True}]
 proj.file-list = [loc('add_advanced_geometry.py'),
                   loc('add_basic_geometry.py'),
                   loc('aggregate_dbf.py'),
@@ -27,10 +33,12 @@ proj.launch-config = {loc('aggregate_dbf.py'): ('project',
                       loc('filter_top.py'): ('project',
         (u'in_memory/wrf3.6.1\\ARWH_TiedtkeCu_Morrison\\reflec_netcdf',
          '')),
+                      loc('interpolate_track.py'): ('project',
+        (u'harvey',
+         '')),
                       loc('isabel_main.py'): ('project',
-        (u'-1',
+        (u'harvey',
          '')),
                       loc('mp_start.py'): ('project',
         (u'2',
          ''))}
-proj.main-file = loc('isabel_main.py')

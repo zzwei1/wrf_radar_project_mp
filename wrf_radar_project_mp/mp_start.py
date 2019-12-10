@@ -119,9 +119,9 @@ def start_mp(work_base_folder,
     arcpy.Delete_management("in_memory")
 
     # We will automatically interpolate track for radar.    
-    # if working_mode != "wrf":
-    #     import interpolate_track
-    #     interpolate_track.main(utils.ibtrac, work_base_folder, stage1_folder, "%Y%m%d_%H%M%S")
+    #if working_mode != "wrf":
+        #import interpolate_track
+        #interpolate_track.main(utils.ibtrac, work_base_folder, stage1_folder, "%Y%m%d_%H%M%S")
 
     asm_input = utils.list_folder_sorted_ext(stage1_folder, ".shp")
     asm_input_path = [os.path.join(stage1_folder, p) for p in asm_input]
